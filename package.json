@@ -1,51 +1,30 @@
 {
-  "name": "get-shit-done-cc",
-  "version": "1.22.4",
-  "description": "A meta-prompting, context engineering and spec-driven development system for Claude Code, OpenCode, Gemini and Codex by TÂCHES.",
-  "bin": {
-    "get-shit-done-cc": "bin/install.js"
+  "name": "gsd-weather-center",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
   },
-  "files": [
-    "bin",
-    "commands",
-    "get-shit-done",
-    "agents",
-    "hooks/dist",
-    "scripts"
-  ],
-  "keywords": [
-    "claude",
-    "claude-code",
-    "ai",
-    "meta-prompting",
-    "context-engineering",
-    "spec-driven-development",
-    "gemini",
-    "gemini-cli",
-    "codex",
-    "codex-cli"
-  ],
-  "author": "TÂCHES",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/glittercowboy/get-shit-done.git"
-  },
-  "homepage": "https://github.com/glittercowboy/get-shit-done",
-  "bugs": {
-    "url": "https://github.com/glittercowboy/get-shit-done/issues"
-  },
-  "engines": {
-    "node": ">=16.7.0"
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "mapbox-gl": "^3.9.0",
+    "next": "^15.1.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-map-gl": "^7.1.0",
+    "recharts": "^2.15.0",
+    "swr": "^2.3.0"
   },
   "devDependencies": {
-    "c8": "^11.0.0",
-    "esbuild": "^0.24.0"
-  },
-  "scripts": {
-    "build:hooks": "node scripts/build-hooks.js",
-    "prepublishOnly": "npm run build:hooks",
-    "test": "node scripts/run-tests.cjs",
-    "test:coverage": "c8 --check-coverage --lines 70 --reporter text --include 'get-shit-done/bin/lib/*.cjs' --exclude 'tests/**' --all node scripts/run-tests.cjs"
+    "@tailwindcss/postcss": "^4.0.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "postcss": "^8.5.0",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.7.0"
   }
 }
