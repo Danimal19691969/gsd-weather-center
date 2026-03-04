@@ -37,6 +37,7 @@
 - [ ] **INFRA-01**: Weather data is fetched through MCP tool servers (Weather API server, NOAA buoy server, Location/geocoding server)
 - [ ] **INFRA-02**: Dashboard auto-refreshes every 5 minutes aligned with NOAA buoy update cycles
 - [ ] **INFRA-03**: All external API data is fetched server-side (no direct browser-to-NOAA/Weather.gov calls)
+- [ ] **INFRA-04**: Data caching layer with 5-minute TTL for all API responses
 
 ### User Interface
 
@@ -79,32 +80,33 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| WX-01 | TBD | Pending |
-| WX-02 | TBD | Pending |
-| WX-03 | TBD | Pending |
-| WX-04 | TBD | Pending |
-| BUOY-01 | TBD | Pending |
-| BUOY-02 | TBD | Pending |
-| BUOY-03 | TBD | Pending |
-| BUOY-04 | TBD | Pending |
-| BUOY-05 | TBD | Pending |
-| LOC-01 | TBD | Pending |
-| LOC-02 | TBD | Pending |
-| AI-01 | TBD | Pending |
-| AI-02 | TBD | Pending |
-| AI-03 | TBD | Pending |
-| AI-04 | TBD | Pending |
-| INFRA-01 | TBD | Pending |
-| INFRA-02 | TBD | Pending |
-| INFRA-03 | TBD | Pending |
-| UI-01 | TBD | Pending |
-| UI-02 | TBD | Pending |
-| UI-03 | TBD | Pending |
+| WX-01 | Phase 2: Core Dashboard UI | Pending |
+| WX-02 | Phase 2: Core Dashboard UI | Pending |
+| WX-03 | Phase 2: Core Dashboard UI | Pending |
+| WX-04 | Phase 2: Core Dashboard UI | Pending |
+| BUOY-01 | Phase 4: NOAA Buoy Integration | Pending |
+| BUOY-02 | Phase 4: NOAA Buoy Integration | Pending |
+| BUOY-03 | Phase 4: NOAA Buoy Integration | Pending |
+| BUOY-04 | Phase 3: Map and Location | Pending |
+| BUOY-05 | Phase 4: NOAA Buoy Integration | Pending |
+| LOC-01 | Phase 3: Map and Location | Pending |
+| LOC-02 | Phase 3: Map and Location | Pending |
+| AI-01 | Phase 5: AI Weather Assistant | Pending |
+| AI-02 | Phase 5: AI Weather Assistant | Pending |
+| AI-03 | Phase 5: AI Weather Assistant | Pending |
+| AI-04 | Phase 6: Polish and Deployment | Pending |
+| INFRA-01 | Phase 1: MCP Data Foundation | Pending |
+| INFRA-02 | Phase 6: Polish and Deployment | Pending |
+| INFRA-03 | Phase 1: MCP Data Foundation | Pending |
+| INFRA-04 | Phase 1: MCP Data Foundation | Pending |
+| UI-01 | Phase 2: Core Dashboard UI | Pending |
+| UI-02 | Phase 6: Polish and Deployment | Pending |
+| UI-03 | Phase 3: Map and Location | Pending |
 
 **Coverage:**
-- v1 requirements: 21 total
-- Mapped to phases: 0
-- Unmapped: 21 (pending roadmap creation)
+- v1 requirements: 22 total
+- Mapped to phases: 22
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-04*

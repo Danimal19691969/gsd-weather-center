@@ -70,6 +70,7 @@ Real-time, multi-source weather and ocean data unified in one dashboard with an 
 | Dark terminal/HUD aesthetic | NASA mission control style — data-dense, neon accents, dark backgrounds | — Pending |
 | 5-minute auto-refresh | Aligned with NOAA buoy update frequency (5-10 min) | — Pending |
 | Open-Meteo as primary weather API | Free, no API key required, good coverage | — Pending |
+| NOAA NDBC realtime2 endpoint | Use https://www.ndbc.noaa.gov/data/realtime2/ for buoy data | — Pending |
 
 ---
 *Last updated: 2026-03-04 after initialization*
