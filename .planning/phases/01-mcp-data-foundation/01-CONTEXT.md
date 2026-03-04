@@ -48,8 +48,14 @@ This phase builds the entire data layer — three MCP tool servers (weather, buo
 ### Buoy Station List
 - **Static JSON bundled in app** — NDBC station list (~1000 stations) as a JSON file at `src/data/buoy-stations.json`
 - Contains: station ID, name, lat, lon, type (buoy/land/ship)
-- Used by `getNearbyBuoys()` for distance calculations (Haversine formula)
+- Used by `getNearbyBuoys()` for distance calculations
 - Station list rarely changes — no live fetching needed
+
+### Buoy Proximity Search — Great-Circle Distance
+- **Must use Haversine formula** for `getNearbyBuoys()` distance calculations — NOT simple lat/lon subtraction
+- Simple coordinate subtraction distorts heavily at higher latitudes and over ocean distances
+- Implement a `haversineDistance(lat1, lon1, lat2, lon2): number` utility that returns distance in miles
+- This is critical for accurate ocean proximity (e.g., "buoys within 50 miles of Portland")
 
 ### Caching Layer
 - **In-memory Map with TTL** — `Map<string, { data: any, expiry: number }>`
