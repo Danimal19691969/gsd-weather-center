@@ -1,5 +1,6 @@
 import type { ToolResult } from "@/lib/types/tool-result";
 import type { GeocodingResult } from "@/lib/types/location";
+import { cachedFetch } from "@/lib/cache";
 
 const MAPBOX_GEOCODING_BASE = "https://api.mapbox.com/geocoding/v5/mapbox.places";
 
@@ -24,19 +25,17 @@ export async function resolveLocation(
 
   try {
     const encoded = encodeURIComponent(query);
-    const res = await fetch(
-      `${MAPBOX_GEOCODING_BASE}/${encoded}.json?access_token=${token}&limit=5`
+    const json = await cachedFetch(
+      `location:resolve:${query}`,
+      async () => {
+        const res = await fetch(
+          `${MAPBOX_GEOCODING_BASE}/${encoded}.json?access_token=${token}&limit=5`
+        );
+        if (!res.ok) throw new Error(`Mapbox returned ${res.status}: ${res.statusText}`);
+        return res.json();
+      },
+      86_400_000 // 24 hours
     );
-
-    if (!res.ok) {
-      return {
-        success: false,
-        error: `Mapbox returned ${res.status}: ${res.statusText}`,
-        source: "mapbox",
-      };
-    }
-
-    const json = await res.json();
     const features: MapboxFeature[] = json.features ?? [];
 
     const results: GeocodingResult[] = features.map((f) => {

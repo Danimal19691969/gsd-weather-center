@@ -5,6 +5,7 @@ import type {
   DailyForecast,
   MarineWeather,
 } from "@/lib/types/weather";
+import { cachedFetch } from "@/lib/cache";
 
 const OPEN_METEO_BASE = "https://api.open-meteo.com/v1";
 const MARINE_BASE = "https://marine-api.open-meteo.com/v1";
@@ -49,16 +50,14 @@ export async function getCurrentWeather(
       timezone: "auto",
     });
 
-    const res = await fetch(`${OPEN_METEO_BASE}/forecast?${params}`);
-    if (!res.ok) {
-      return {
-        success: false,
-        error: `Open-Meteo returned ${res.status}: ${res.statusText}`,
-        source: "open-meteo",
-      };
-    }
-
-    const json = await res.json();
+    const json = await cachedFetch(
+      `weather:current:${lat}:${lon}`,
+      async () => {
+        const res = await fetch(`${OPEN_METEO_BASE}/forecast?${params}`);
+        if (!res.ok) throw new Error(`Open-Meteo returned ${res.status}: ${res.statusText}`);
+        return res.json();
+      }
+    );
     const c = json.current;
 
     return {
@@ -125,16 +124,14 @@ export async function getForecast(
       params.set("forecast_days", "7");
     }
 
-    const res = await fetch(`${OPEN_METEO_BASE}/forecast?${params}`);
-    if (!res.ok) {
-      return {
-        success: false,
-        error: `Open-Meteo returned ${res.status}: ${res.statusText}`,
-        source: "open-meteo",
-      };
-    }
-
-    const json = await res.json();
+    const json = await cachedFetch(
+      `weather:forecast:${type}:${lat}:${lon}`,
+      async () => {
+        const res = await fetch(`${OPEN_METEO_BASE}/forecast?${params}`);
+        if (!res.ok) throw new Error(`Open-Meteo returned ${res.status}: ${res.statusText}`);
+        return res.json();
+      }
+    );
 
     if (type === "hourly") {
       const h = json.hourly;
@@ -193,16 +190,14 @@ export async function getMarineWeather(
       ].join(","),
     });
 
-    const res = await fetch(`${MARINE_BASE}/marine?${params}`);
-    if (!res.ok) {
-      return {
-        success: false,
-        error: `Open-Meteo Marine returned ${res.status}: ${res.statusText}`,
-        source: "open-meteo-marine",
-      };
-    }
-
-    const json = await res.json();
+    const json = await cachedFetch(
+      `weather:marine:${lat}:${lon}`,
+      async () => {
+        const res = await fetch(`${MARINE_BASE}/marine?${params}`);
+        if (!res.ok) throw new Error(`Open-Meteo Marine returned ${res.status}: ${res.statusText}`);
+        return res.json();
+      }
+    );
     const c = json.current;
 
     return {

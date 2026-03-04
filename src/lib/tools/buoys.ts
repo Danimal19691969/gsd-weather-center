@@ -2,6 +2,7 @@ import type { ToolResult } from "@/lib/types/tool-result";
 import type { BuoyStation, BuoyObservation } from "@/lib/types/buoy";
 import { haversineDistance } from "@/lib/utils/distance";
 import { buoyStations } from "@/data/stations";
+import { cachedFetch } from "@/lib/cache";
 
 const NDBC_BASE = "https://www.ndbc.noaa.gov/data/realtime2";
 
@@ -81,20 +82,22 @@ export async function getNearbyBuoys(
   }
 }
 
+async function fetchStationText(stationId: string): Promise<string> {
+  return cachedFetch(
+    `buoy:station:${stationId}`,
+    async () => {
+      const res = await fetch(`${NDBC_BASE}/${stationId}.txt`);
+      if (!res.ok) throw new Error(`NDBC returned ${res.status} for station ${stationId}`);
+      return res.text();
+    }
+  );
+}
+
 export async function getBuoyObservations(
   stationId: string
 ): Promise<ToolResult<BuoyObservation>> {
   try {
-    const res = await fetch(`${NDBC_BASE}/${stationId}.txt`);
-    if (!res.ok) {
-      return {
-        success: false,
-        error: `NDBC returned ${res.status} for station ${stationId}`,
-        source: "ndbc",
-      };
-    }
-
-    const text = await res.text();
+    const text = await fetchStationText(stationId);
     const observations = parseNDBCText(text, stationId);
 
     if (observations.length === 0) {
@@ -119,16 +122,7 @@ export async function getBuoyHistory(
   stationId: string
 ): Promise<ToolResult<BuoyObservation[]>> {
   try {
-    const res = await fetch(`${NDBC_BASE}/${stationId}.txt`);
-    if (!res.ok) {
-      return {
-        success: false,
-        error: `NDBC returned ${res.status} for station ${stationId}`,
-        source: "ndbc",
-      };
-    }
-
-    const text = await res.text();
+    const text = await fetchStationText(stationId);
     const observations = parseNDBCText(text, stationId);
 
     const twentyFourHoursAgo = Date.now() - 24 * 60 * 60 * 1000;
