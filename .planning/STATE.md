@@ -7,12 +7,22 @@ See: .planning/PROJECT.md (updated 2026-03-04)
 
 ## Current Position
 Phase: 1 of 6 (MCP Data Foundation)
-Plan: 0 of 6 in current phase
+Plan: 0 of 6 in current phase (all 6 planned, ready to execute)
 Total plans: 28 across 6 phases
-Status: Ready to plan
-Last activity: 2026-03-04 — Project initialized
+Status: Ready to execute Phase 1
+Last activity: 2026-03-04 — Phase 1 plans created
 
 Progress: [░░░░░░░░░░] 0%
+
+## Phase 1 Plans
+| Plan | Name | Wave | Depends On | Status |
+|------|------|------|------------|--------|
+| 01-01 | Project scaffold (Next.js, types, buoy data) | 1 | — | Ready |
+| 01-02 | Weather MCP server (Open-Meteo) | 2 | 01-01 | Ready |
+| 01-03 | NOAA Buoy MCP server (NDBC parser, Haversine) | 2 | 01-01 | Ready |
+| 01-04 | Geocoding MCP server (Mapbox) | 2 | 01-01 | Ready |
+| 01-05 | Caching layer (5-min TTL, dedup) | 3 | 01-02, 01-03, 01-04 | Ready |
+| 01-06 | Integration tests (all tools + cache) | 4 | 01-05 | Ready |
 
 ## Performance Metrics
 **Velocity:**
@@ -30,5 +40,5 @@ None yet.
 
 ## Session Continuity
 Last session: 2026-03-04
-Stopped at: Project initialized, ready to plan Phase 1
+Stopped at: Phase 1 fully planned (6 plans), ready to execute Plan 01-01
 Resume file: None
