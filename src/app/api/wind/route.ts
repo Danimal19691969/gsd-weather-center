@@ -15,8 +15,13 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  const clampedWest = Math.max(-180, west);
+  const clampedEast = Math.min(180, east);
+  const clampedSouth = Math.max(-90, south);
+  const clampedNorth = Math.min(90, north);
+
   try {
-    const grid = await fetchWindGrid({ west, south, east, north });
+    const grid = await fetchWindGrid({ west: clampedWest, south: clampedSouth, east: clampedEast, north: clampedNorth });
     return NextResponse.json(
       {
         success: true,

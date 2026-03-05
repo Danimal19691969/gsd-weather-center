@@ -101,12 +101,17 @@ export function WindParticleLayer({ enabled }: Props) {
     fetchAndUpdate();
     const interval = setInterval(fetchAndUpdate, 10_000);
 
-    const onMoveEnd = () => fetchAndUpdate();
+    let debounceTimer: ReturnType<typeof setTimeout>;
+    const onMoveEnd = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(fetchAndUpdate, 1_000);
+    };
     map.on("moveend", onMoveEnd);
 
     return () => {
       cancelled = true;
       clearInterval(interval);
+      clearTimeout(debounceTimer);
       map.off("moveend", onMoveEnd);
     };
   }, [enabled, map]);
