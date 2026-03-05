@@ -11,6 +11,8 @@ import {
 } from "recharts";
 import { useSelectedBuoy } from "@/lib/context/BuoyContext";
 import { useBuoyHistory } from "@/lib/hooks/useBuoys";
+import { useUnits } from "@/lib/context/UnitsContext";
+import { cToF, metersToFeet, mpsToMph } from "@/lib/units";
 import { Panel } from "@/components/ui/Panel";
 import { LoadingPanel } from "@/components/ui/LoadingPanel";
 import type { BuoyObservation } from "@/lib/types/buoy";
@@ -27,14 +29,18 @@ interface ChartData {
 
 function prepareData(
   observations: BuoyObservation[],
-  field: keyof BuoyObservation
+  field: keyof BuoyObservation,
+  convert?: (n: number) => number
 ): ChartData[] {
   return [...observations]
     .reverse()
-    .map((obs) => ({
-      time: formatTime(obs.timestamp),
-      value: obs[field] as number | null,
-    }))
+    .map((obs) => {
+      const raw = obs[field] as number | null;
+      return {
+        time: formatTime(obs.timestamp),
+        value: raw !== null && convert ? convert(raw) : raw,
+      };
+    })
     .filter((d) => d.value !== null);
 }
 
@@ -101,6 +107,8 @@ function MiniChart({ title, data, unit, color }: MiniChartProps) {
 export function BuoyHistoryChart() {
   const { selectedBuoyId } = useSelectedBuoy();
   const { data, isLoading } = useBuoyHistory(selectedBuoyId);
+  const { units } = useUnits();
+  const imperial = units === "imperial";
 
   if (!selectedBuoyId) {
     return (
@@ -113,6 +121,7 @@ export function BuoyHistoryChart() {
   }
 
   if (isLoading) return <LoadingPanel title="24-Hour History" />;
+
   if (!data?.success) {
     return (
       <Panel title="24-Hour History">
@@ -130,20 +139,20 @@ export function BuoyHistoryChart() {
       <div className="grid gap-4 sm:grid-cols-2">
         <MiniChart
           title="Wave Height"
-          data={prepareData(obs, "waveHeight")}
-          unit="m"
+          data={prepareData(obs, "waveHeight", imperial ? metersToFeet : undefined)}
+          unit={imperial ? "ft" : "m"}
           color="#06b6d4"
         />
         <MiniChart
           title="Water Temp"
-          data={prepareData(obs, "waterTemp")}
-          unit="°C"
+          data={prepareData(obs, "waterTemp", imperial ? cToF : undefined)}
+          unit={imperial ? "°F" : "°C"}
           color="#22c55e"
         />
         <MiniChart
           title="Wind Speed"
-          data={prepareData(obs, "windSpeed")}
-          unit="m/s"
+          data={prepareData(obs, "windSpeed", imperial ? mpsToMph : undefined)}
+          unit={imperial ? "mph" : "m/s"}
           color="#eab308"
         />
         <MiniChart

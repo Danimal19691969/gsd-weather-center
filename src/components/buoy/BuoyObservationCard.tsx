@@ -2,6 +2,8 @@
 
 import { useSelectedBuoy } from "@/lib/context/BuoyContext";
 import { useBuoyObservation } from "@/lib/hooks/useBuoys";
+import { useUnits } from "@/lib/context/UnitsContext";
+import { cToF, metersToFeet, mpsToMph } from "@/lib/units";
 import { Panel } from "@/components/ui/Panel";
 import { StatBlock } from "@/components/ui/StatBlock";
 import { LoadingPanel } from "@/components/ui/LoadingPanel";
@@ -17,9 +19,16 @@ function val(v: number | null, decimals = 1): string {
   return v !== null ? v.toFixed(decimals) : "—";
 }
 
+function fmtConv(v: number | null, convert: (n: number) => number, decimals = 1): string {
+  if (v === null) return "—";
+  return convert(v).toFixed(decimals);
+}
+
 export function BuoyObservationCard() {
   const { selectedBuoyId } = useSelectedBuoy();
   const { data, isLoading } = useBuoyObservation(selectedBuoyId);
+  const { units } = useUnits();
+  const imperial = units === "imperial";
 
   if (!selectedBuoyId) {
     return (
@@ -59,7 +68,7 @@ export function BuoyObservationCard() {
           <h3 className="mb-2 font-mono text-[10px] uppercase tracking-wider text-hud-accent-dim">
             Waves
           </h3>
-          <StatBlock label="Height" value={val(obs.waveHeight)} unit="m" />
+          <StatBlock label="Height" value={imperial ? fmtConv(obs.waveHeight, metersToFeet) : val(obs.waveHeight)} unit={imperial ? "ft" : "m"} />
           <div className="mt-2">
             <StatBlock label="Period" value={val(obs.wavePeriod)} unit="s" />
           </div>
@@ -74,9 +83,9 @@ export function BuoyObservationCard() {
           <h3 className="mb-2 font-mono text-[10px] uppercase tracking-wider text-hud-accent-dim">
             Wind
           </h3>
-          <StatBlock label="Speed" value={val(obs.windSpeed)} unit="m/s" />
+          <StatBlock label="Speed" value={imperial ? fmtConv(obs.windSpeed, mpsToMph) : val(obs.windSpeed)} unit={imperial ? "mph" : "m/s"} />
           <div className="mt-2">
-            <StatBlock label="Gust" value={val(obs.gustSpeed)} unit="m/s" />
+            <StatBlock label="Gust" value={imperial ? fmtConv(obs.gustSpeed, mpsToMph) : val(obs.gustSpeed)} unit={imperial ? "mph" : "m/s"} />
           </div>
           <div className="mt-2">
             <StatBlock label="Direction" value={dirLabel(obs.windDirection)} />
@@ -86,12 +95,12 @@ export function BuoyObservationCard() {
           <h3 className="mb-2 font-mono text-[10px] uppercase tracking-wider text-hud-accent-dim">
             Atmosphere
           </h3>
-          <StatBlock label="Air Temp" value={val(obs.airTemp)} unit="°C" />
+          <StatBlock label="Air Temp" value={imperial ? fmtConv(obs.airTemp, cToF) : val(obs.airTemp)} unit={imperial ? "°F" : "°C"} />
           <div className="mt-2">
             <StatBlock label="Pressure" value={val(obs.pressure, 0)} unit="hPa" />
           </div>
           <div className="mt-2">
-            <StatBlock label="Dewpoint" value={val(obs.dewpoint)} unit="°C" />
+            <StatBlock label="Dewpoint" value={imperial ? fmtConv(obs.dewpoint, cToF) : val(obs.dewpoint)} unit={imperial ? "°F" : "°C"} />
           </div>
           <div className="mt-2">
             <StatBlock label="Visibility" value={val(obs.visibility)} unit="nmi" />
@@ -101,7 +110,7 @@ export function BuoyObservationCard() {
           <h3 className="mb-2 font-mono text-[10px] uppercase tracking-wider text-hud-accent-dim">
             Ocean
           </h3>
-          <StatBlock label="Water Temp" value={val(obs.waterTemp)} unit="°C" />
+          <StatBlock label="Water Temp" value={imperial ? fmtConv(obs.waterTemp, cToF) : val(obs.waterTemp)} unit={imperial ? "°F" : "°C"} />
         </div>
       </div>
     </Panel>

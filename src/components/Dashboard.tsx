@@ -13,6 +13,7 @@ import { BuoyListPanel } from "./buoy/BuoyListPanel";
 import { BuoyObservationCard } from "./buoy/BuoyObservationCard";
 import { BuoyHistoryChart } from "./buoy/BuoyHistoryChart";
 import { ChatPanel } from "./chat/ChatPanel";
+import { UnitToggle } from "./UnitToggle";
 
 function DashboardContent() {
   const { lat, lon, locationName } = useLocation();
@@ -32,9 +33,12 @@ function DashboardContent() {
           <LocationSearch />
           <GeolocationButton />
         </div>
-        <div className="shrink-0 font-mono text-xs text-hud-text-dim">
-          OPERATIONAL
-          <span className="ml-2 inline-block h-2 w-2 rounded-full bg-hud-success" />
+        <div className="flex shrink-0 items-center gap-3">
+          <UnitToggle />
+          <div className="font-mono text-xs text-hud-text-dim">
+            OPERATIONAL
+            <span className="ml-2 inline-block h-2 w-2 rounded-full bg-hud-success" />
+          </div>
         </div>
       </header>
 

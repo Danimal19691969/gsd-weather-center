@@ -2,15 +2,22 @@
 
 import { useLocation } from "@/lib/context/LocationContext";
 import { useSelectedBuoy } from "@/lib/context/BuoyContext";
+import { useUnits } from "@/lib/context/UnitsContext";
 import { useNearbyBuoys } from "@/lib/hooks/useBuoys";
 import { Panel } from "@/components/ui/Panel";
 import { LoadingPanel } from "@/components/ui/LoadingPanel";
 import { ErrorPanel } from "@/components/ui/ErrorPanel";
 
+function milesToKm(mi: number): number {
+  return mi / 0.621371;
+}
+
 export function BuoyListPanel() {
   const { lat, lon } = useLocation();
   const { data, isLoading } = useNearbyBuoys(lat, lon);
   const { selectedBuoyId, setSelectedBuoy } = useSelectedBuoy();
+  const { units } = useUnits();
+  const imperial = units === "imperial";
 
   if (isLoading) return <LoadingPanel title="Nearby Buoys" />;
   if (!data?.success)
@@ -54,7 +61,7 @@ export function BuoyListPanel() {
                   </td>
                   <td className="py-1.5 pr-2 text-hud-text-dim">{buoy.type}</td>
                   <td className="py-1.5 text-right text-hud-text-dim">
-                    {buoy.distanceMiles} mi
+                    {imperial ? buoy.distanceMiles : Math.round(milesToKm(buoy.distanceMiles))} {imperial ? "mi" : "km"}
                   </td>
                 </tr>
               ))}
