@@ -1,6 +1,7 @@
 "use client";
 
 import { LocationProvider, useLocation } from "@/lib/context/LocationContext";
+import { BuoyProvider } from "@/lib/context/BuoyContext";
 import { WeatherMap } from "./map/WeatherMap";
 import { LocationSearch } from "./map/LocationSearch";
 import { GeolocationButton } from "./map/GeolocationButton";
@@ -8,6 +9,9 @@ import { CurrentConditions } from "./weather/CurrentConditions";
 import { DailyForecastPanel } from "./weather/DailyForecast";
 import { HourlyTimeline } from "./weather/HourlyTimeline";
 import { MarinePanel } from "./weather/MarinePanel";
+import { BuoyListPanel } from "./buoy/BuoyListPanel";
+import { BuoyObservationCard } from "./buoy/BuoyObservationCard";
+import { BuoyHistoryChart } from "./buoy/BuoyHistoryChart";
 
 function DashboardContent() {
   const { lat, lon, locationName } = useLocation();
@@ -53,6 +57,19 @@ function DashboardContent() {
       <div className="mt-4">
         <MarinePanel lat={lat} lon={lon} />
       </div>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-3">
+        <div className="lg:col-span-1">
+          <BuoyListPanel />
+        </div>
+        <div className="lg:col-span-2">
+          <BuoyObservationCard />
+        </div>
+      </div>
+
+      <div className="mt-4">
+        <BuoyHistoryChart />
+      </div>
     </div>
   );
 }
@@ -60,7 +77,9 @@ function DashboardContent() {
 export function Dashboard() {
   return (
     <LocationProvider>
-      <DashboardContent />
+      <BuoyProvider>
+        <DashboardContent />
+      </BuoyProvider>
     </LocationProvider>
   );
 }
