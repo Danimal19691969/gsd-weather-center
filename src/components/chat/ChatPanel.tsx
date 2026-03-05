@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useLocation } from "@/lib/context/LocationContext";
 import { Panel } from "@/components/ui/Panel";
 
@@ -14,13 +14,15 @@ export function ChatPanel() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [streamingText, setStreamingText] = useState("");
+  const [statusText, setStatusText] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages]);
+  }, [messages, streamingText]);
 
-  const send = async () => {
+  const send = useCallback(async () => {
     const text = input.trim();
     if (!text || isLoading) return;
 
@@ -29,6 +31,8 @@ export function ChatPanel() {
     setMessages(newMessages);
     setInput("");
     setIsLoading(true);
+    setStreamingText("");
+    setStatusText("");
 
     try {
       const res = await fetch("/api/chat", {
@@ -36,19 +40,62 @@ export function ChatPanel() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: newMessages, lat, lon, locationName }),
       });
-      const data = await res.json();
 
-      if (data.error) {
+      if (!res.ok) {
+        const data = await res.json();
         setMessages([...newMessages, { role: "assistant", content: `Error: ${data.error}` }]);
-      } else {
-        setMessages([...newMessages, { role: "assistant", content: data.message }]);
+        setIsLoading(false);
+        return;
       }
+
+      const reader = res.body?.getReader();
+      if (!reader) {
+        setMessages([...newMessages, { role: "assistant", content: "No response stream." }]);
+        setIsLoading(false);
+        return;
+      }
+
+      const decoder = new TextDecoder();
+      let accumulated = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split("\n");
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const jsonStr = line.slice(6);
+          try {
+            const event = JSON.parse(jsonStr);
+            if (event.type === "text") {
+              accumulated += event.text;
+              setStreamingText(accumulated);
+            } else if (event.type === "status") {
+              setStatusText(event.text);
+            } else if (event.type === "error") {
+              accumulated += `\n\nError: ${event.text}`;
+              setStreamingText(accumulated);
+            } else if (event.type === "done") {
+              // Finalize
+            }
+          } catch {
+            // Skip malformed JSON
+          }
+        }
+      }
+
+      setMessages([...newMessages, { role: "assistant", content: accumulated || "No response." }]);
+      setStreamingText("");
+      setStatusText("");
     } catch {
       setMessages([...newMessages, { role: "assistant", content: "Failed to reach the AI service." }]);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [input, isLoading, messages, lat, lon, locationName]);
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -60,7 +107,7 @@ export function ChatPanel() {
   return (
     <Panel title="AI Weather Assistant">
       <div ref={scrollRef} className="mb-3 h-64 overflow-y-auto space-y-2">
-        {messages.length === 0 && (
+        {messages.length === 0 && !isLoading && (
           <p className="py-8 text-center font-mono text-xs text-hud-text-dim">
             Ask me about weather conditions, forecasts, buoy data, or activity advice.
           </p>
@@ -83,8 +130,14 @@ export function ChatPanel() {
         ))}
         {isLoading && (
           <div className="flex justify-start">
-            <div className="rounded bg-hud-panel border border-hud-border px-3 py-2 font-mono text-xs text-hud-text-dim">
-              <span className="animate-pulse">Analyzing conditions...</span>
+            <div className="max-w-[80%] rounded bg-hud-panel border border-hud-border px-3 py-2 font-mono text-xs text-hud-text">
+              {streamingText ? (
+                <div className="whitespace-pre-wrap">{streamingText}<span className="animate-pulse">▊</span></div>
+              ) : (
+                <span className="animate-pulse text-hud-text-dim">
+                  {statusText || "Analyzing conditions..."}
+                </span>
+              )}
             </div>
           </div>
         )}

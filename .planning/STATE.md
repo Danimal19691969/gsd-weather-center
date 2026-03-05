@@ -3,41 +3,41 @@
 ## Project Reference
 See: .planning/PROJECT.md (updated 2026-03-04)
 **Core value:** Real-time, multi-source weather and ocean data unified in one dashboard with an AI assistant
-**Current focus:** Phase 6
+**Current focus:** Complete
 
 ## Current Position
-Phase: 5 of 6 complete (AI Weather Assistant)
-Plan: 23 of 28 complete
+Phase: 6 of 6 complete (Polish and Deployment)
+Plan: 28 of 28 complete
 Total plans: 28 across 6 phases
-Status: Phase 5 complete, ready for Phase 6
-Last activity: 2026-03-04 — Phase 5 complete
+Status: ALL PHASES COMPLETE
+Last activity: 2026-03-04 — Phase 6 complete
 
-Progress: [████████░░] 82%
+Progress: [██████████] 100%
 
-## Phase 5 Plans
+## Phase 6 Plans
 | Plan | Name | Status |
 |------|------|--------|
-| 05-01 | Claude API with tool use + chat API route (AI-01, AI-02, AI-03) | Complete |
-| 05-02 | Chat UI panel with message history (AI-01) | Complete |
-| 05-03 | Weather Q&A flow (covered by 05-01 tool integration) | Complete |
-| 05-04 | Buoy discovery flow (covered by 05-01 tool integration) | Complete |
+| 06-01 | Streaming AI responses via SSE (AI-04) | Complete |
+| 06-02 | SWR 5-min polling (already implemented) (INFRA-02) | Complete |
+| 06-03 | Responsive layout (mobile/tablet/desktop) (UI-02) | Complete |
+| 06-04 | Performance pass (bundle size verified < 300kB) | Complete |
+| 06-05 | Build validation (tsc, build, tests all pass) | Complete |
 
-## Performance Metrics
+## Final Metrics
+**Build:**
+- First Load JS: 223 kB
+- TypeScript errors: 0
+- Tests: 30 passed, 5 skipped (need Mapbox token)
+- Production build: passing
+
 **Velocity:**
-- Total plans completed: 23
-- Average duration: ~4 min
-- Total execution time: ~90 min
+- Total plans completed: 28
+- Phases completed: 6
+- Total execution time: ~105 min
 
-## Accumulated Context
-### Decisions
-Decisions are logged in PROJECT.md Key Decisions table.
-### Pending Todos
-- Set up .env.local with NEXT_PUBLIC_MAPBOX_TOKEN for map and geocoding features
-- Set up .env.local with ANTHROPIC_API_KEY for AI assistant
-### Blockers/Concerns
-None.
-
-## Session Continuity
-Last session: 2026-03-04
-Stopped at: Phase 5 complete, ready for Phase 6 (Polish and Deployment)
-Resume file: None
+## Setup Required
+To run with all features:
+1. Copy `.env.local.example` to `.env.local`
+2. Add `NEXT_PUBLIC_MAPBOX_TOKEN` (Mapbox account → Tokens)
+3. Add `ANTHROPIC_API_KEY` (Anthropic console → API Keys)
+4. Run `npm run dev`

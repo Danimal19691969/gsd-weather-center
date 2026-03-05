@@ -42,7 +42,7 @@ export function WeatherMap() {
 
   return (
     <Panel title="Tactical Map">
-      <div className="h-72 overflow-hidden rounded">
+      <div className="h-48 overflow-hidden rounded sm:h-64 lg:h-72">
         <Map
           {...viewState}
           onMove={onMove}
