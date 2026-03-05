@@ -5,6 +5,8 @@ import Map, { NavigationControl, type ViewStateChangeEvent } from "react-map-gl"
 import { useLocation } from "@/lib/context/LocationContext";
 import { Panel } from "@/components/ui/Panel";
 import { BuoyMarkers } from "./BuoyMarkers";
+import { WindParticleLayer } from "./WindParticleLayer";
+import { WindToggleButton } from "./WindToggleButton";
 import "mapbox-gl/dist/mapbox-gl.css";
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
@@ -16,6 +18,7 @@ export function WeatherMap() {
     latitude: lat,
     zoom: 8,
   });
+  const [windEnabled, setWindEnabled] = useState(false);
 
   const onMove = useCallback((evt: ViewStateChangeEvent) => {
     setViewState(evt.viewState);
@@ -42,7 +45,7 @@ export function WeatherMap() {
 
   return (
     <Panel title="Tactical Map">
-      <div className="h-48 overflow-hidden rounded sm:h-64 lg:h-72">
+      <div className="relative h-48 overflow-hidden rounded sm:h-64 lg:h-72">
         <Map
           {...viewState}
           onMove={onMove}
@@ -54,7 +57,14 @@ export function WeatherMap() {
         >
           <NavigationControl position="top-right" showCompass={false} />
           <BuoyMarkers />
+          <WindParticleLayer enabled={windEnabled} />
         </Map>
+        <div className="absolute top-2 left-2 z-10">
+          <WindToggleButton
+            enabled={windEnabled}
+            onToggle={() => setWindEnabled((v) => !v)}
+          />
+        </div>
       </div>
     </Panel>
   );
