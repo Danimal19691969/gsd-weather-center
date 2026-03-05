@@ -12,6 +12,7 @@ import { MarinePanel } from "./weather/MarinePanel";
 import { BuoyListPanel } from "./buoy/BuoyListPanel";
 import { BuoyObservationCard } from "./buoy/BuoyObservationCard";
 import { BuoyHistoryChart } from "./buoy/BuoyHistoryChart";
+import { ChatPanel } from "./chat/ChatPanel";
 
 function DashboardContent() {
   const { lat, lon, locationName } = useLocation();
@@ -69,6 +70,10 @@ function DashboardContent() {
 
       <div className="mt-4">
         <BuoyHistoryChart />
+      </div>
+
+      <div className="mt-4">
+        <ChatPanel />
       </div>
     </div>
   );
