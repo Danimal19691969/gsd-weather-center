@@ -1,0 +1,69 @@
+"use client";
+
+import { useHourlyForecast } from "@/lib/hooks/useWeather";
+import { Panel } from "@/components/ui/Panel";
+import { LoadingPanel } from "@/components/ui/LoadingPanel";
+import { ErrorPanel } from "@/components/ui/ErrorPanel";
+import type { HourlyForecast } from "@/lib/types/weather";
+
+function formatHour(timeStr: string): string {
+  const date = new Date(timeStr);
+  return date.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    hour12: true,
+  });
+}
+
+function windDirectionLabel(deg: number): string {
+  const dirs = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+  return dirs[Math.round(deg / 45) % 8];
+}
+
+function HourCell({ hour }: { hour: HourlyForecast }) {
+  return (
+    <div className="flex min-w-[60px] flex-col items-center rounded border border-hud-border bg-hud-bg px-2 py-2">
+      <div className="font-mono text-[10px] text-hud-text-dim">
+        {formatHour(hour.time)}
+      </div>
+      <div className="mt-1 font-mono text-sm font-bold text-hud-text">
+        {Math.round(hour.temperature)}&deg;
+      </div>
+      {hour.precipitationProbability > 0 && (
+        <div className="mt-0.5 font-mono text-[10px] text-blue-400">
+          {hour.precipitationProbability}%
+        </div>
+      )}
+      <div className="mt-0.5 font-mono text-[10px] text-hud-text-dim">
+        {hour.windSpeed.toFixed(0)} {windDirectionLabel(hour.windDirection)}
+      </div>
+    </div>
+  );
+}
+
+interface Props {
+  lat: number;
+  lon: number;
+}
+
+export function HourlyTimeline({ lat, lon }: Props) {
+  const { data, isLoading } = useHourlyForecast(lat, lon);
+
+  if (isLoading) return <LoadingPanel title="Hourly Forecast" />;
+  if (!data?.success)
+    return (
+      <ErrorPanel
+        title="Hourly Forecast"
+        message={!data ? "No data" : data.error}
+      />
+    );
+
+  return (
+    <Panel title="48-Hour Forecast">
+      <div className="flex gap-2 overflow-x-auto pb-2">
+        {data.data.map((hour) => (
+          <HourCell key={hour.time} hour={hour} />
+        ))}
+      </div>
+    </Panel>
+  );
+}

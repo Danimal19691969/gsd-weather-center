@@ -3,32 +3,31 @@
 ## Project Reference
 See: .planning/PROJECT.md (updated 2026-03-04)
 **Core value:** Real-time, multi-source weather and ocean data unified in one dashboard with an AI assistant
-**Current focus:** Phase 2
+**Current focus:** Phase 3
 
 ## Current Position
-Phase: 1 of 6 complete (MCP Data Foundation)
-Plan: 6 of 6 complete in Phase 1
+Phase: 2 of 6 complete (Core Dashboard UI)
+Plan: 11 of 28 complete
 Total plans: 28 across 6 phases
-Status: Phase 1 complete, ready for Phase 2
-Last activity: 2026-03-04 — Phase 1 complete
+Status: Phase 2 complete, ready for Phase 3
+Last activity: 2026-03-04 — Phase 2 complete
 
-Progress: [██░░░░░░░░] 21%
+Progress: [████░░░░░░] 39%
 
-## Phase 1 Plans
-| Plan | Name | Wave | Depends On | Status |
-|------|------|------|------------|--------|
-| 01-01 | Project scaffold (Next.js, types, buoy data) | 1 | — | Complete |
-| 01-02 | Weather MCP server (Open-Meteo) | 2 | 01-01 | Complete |
-| 01-03 | NOAA Buoy MCP server (NDBC parser, Haversine) | 2 | 01-01 | Complete |
-| 01-04 | Geocoding MCP server (Mapbox) | 2 | 01-01 | Complete |
-| 01-05 | Caching layer (5-min TTL, dedup) | 3 | 01-02, 01-03, 01-04 | Complete |
-| 01-06 | Integration tests (all tools + cache) | 4 | 01-05 | Complete |
+## Phase 2 Plans
+| Plan | Name | Status |
+|------|------|--------|
+| 02-01 | HUD shell layout (dark theme, grid, panel components) | Complete |
+| 02-02 | Current conditions panel (WX-01) | Complete |
+| 02-03 | 7-day forecast panel (WX-02) | Complete |
+| 02-04 | Hourly forecast timeline (WX-03) | Complete |
+| 02-05 | Marine conditions panel (WX-04) | Complete |
 
 ## Performance Metrics
 **Velocity:**
-- Total plans completed: 6
-- Average duration: ~5 min
-- Total execution time: ~30 min
+- Total plans completed: 11
+- Average duration: ~4 min
+- Total execution time: ~45 min
 
 ## Accumulated Context
 ### Decisions
@@ -40,5 +39,5 @@ None.
 
 ## Session Continuity
 Last session: 2026-03-04
-Stopped at: Phase 1 complete, ready to plan Phase 2 (Core Dashboard UI)
+Stopped at: Phase 2 complete, ready for Phase 3 (Map and Location)
 Resume file: None

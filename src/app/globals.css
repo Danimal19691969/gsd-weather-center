@@ -1,1 +1,15 @@
 @import "tailwindcss";
+
+@theme {
+  --color-hud-bg: #0a0e17;
+  --color-hud-panel: #111827;
+  --color-hud-border: #1e3a5f;
+  --color-hud-accent: #06b6d4;
+  --color-hud-accent-dim: #0e7490;
+  --color-hud-text: #e2e8f0;
+  --color-hud-text-dim: #94a3b8;
+  --color-hud-success: #22c55e;
+  --color-hud-warning: #eab308;
+  --color-hud-danger: #ef4444;
+  --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+}
