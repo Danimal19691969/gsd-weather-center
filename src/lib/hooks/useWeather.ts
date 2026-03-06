@@ -9,11 +9,17 @@ import type {
   MarineWeather,
 } from "@/lib/types/weather";
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+async function fetcher<T>(url: string): Promise<T> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+  return res.json();
+}
 
 const SWR_OPTIONS = {
-  refreshInterval: 300_000, // 5 minutes
+  refreshInterval: 0, // disabled — useLoadWeather handles refresh
+  dedupingInterval: 600_000, // 10 minutes
   revalidateOnFocus: false,
+  revalidateOnReconnect: false,
   keepPreviousData: true,
 };
 
@@ -47,4 +53,53 @@ export function useMarineWeather(lat: number, lon: number) {
     fetcher,
     SWR_OPTIONS
   );
+}
+
+// ---------------------------------------------------------------------------
+// Unified hook — fetches all weather data once, distributes to panels
+// ---------------------------------------------------------------------------
+
+export interface WeatherBundle {
+  current: ToolResult<CurrentWeather> | undefined;
+  hourly: ToolResult<HourlyForecast[]> | undefined;
+  daily: ToolResult<DailyForecast[]> | undefined;
+  marine: ToolResult<MarineWeather> | undefined;
+  isLoading: boolean;
+  error: Error | undefined;
+}
+
+export function useWeather(lat: number, lon: number): WeatherBundle {
+  const current = useSWR<ToolResult<CurrentWeather>>(
+    `/api/weather?tool=current&lat=${lat}&lon=${lon}`,
+    fetcher,
+    SWR_OPTIONS
+  );
+
+  const hourly = useSWR<ToolResult<HourlyForecast[]>>(
+    `/api/weather?tool=forecast&lat=${lat}&lon=${lon}&type=hourly`,
+    fetcher,
+    SWR_OPTIONS
+  );
+
+  const daily = useSWR<ToolResult<DailyForecast[]>>(
+    `/api/weather?tool=forecast&lat=${lat}&lon=${lon}&type=daily`,
+    fetcher,
+    SWR_OPTIONS
+  );
+
+  const marine = useSWR<ToolResult<MarineWeather>>(
+    `/api/weather?tool=marine&lat=${lat}&lon=${lon}`,
+    fetcher,
+    SWR_OPTIONS
+  );
+
+  return {
+    current: current.data,
+    hourly: hourly.data,
+    daily: daily.data,
+    marine: marine.data,
+    isLoading:
+      current.isLoading || hourly.isLoading || daily.isLoading || marine.isLoading,
+    error: current.error || hourly.error || daily.error || marine.error,
+  };
 }

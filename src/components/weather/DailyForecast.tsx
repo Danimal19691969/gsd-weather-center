@@ -1,8 +1,8 @@
 "use client";
 
-import { useDailyForecast } from "@/lib/hooks/useWeather";
 import { useUnits } from "@/lib/context/UnitsContext";
 import { cToF } from "@/lib/units";
+import { useWeatherStore } from "@/store/weatherStore";
 import { Panel } from "@/components/ui/Panel";
 import { LoadingPanel } from "@/components/ui/LoadingPanel";
 import { ErrorPanel } from "@/components/ui/ErrorPanel";
@@ -44,29 +44,26 @@ function DayCard({ day, imperial }: { day: DailyForecast; imperial: boolean }) {
   );
 }
 
-interface Props {
-  lat: number;
-  lon: number;
-}
-
-export function DailyForecastPanel({ lat, lon }: Props) {
-  const { data, isLoading } = useDailyForecast(lat, lon);
+export function DailyForecastPanel() {
   const { units } = useUnits();
   const imperial = units === "imperial";
+  const weather = useWeatherStore((s) => s.weather);
+  const loading = useWeatherStore((s) => s.loading);
+  const error = useWeatherStore((s) => s.error);
 
-  if (isLoading) return <LoadingPanel title="7-Day Forecast" />;
-  if (!data?.success)
+  if (!weather && loading) return <LoadingPanel title="7-Day Forecast" />;
+  if (!weather)
     return (
       <ErrorPanel
         title="7-Day Forecast"
-        message={!data ? "No data" : data.error}
+        message={error ?? "No data"}
       />
     );
 
   return (
     <Panel title="7-Day Forecast">
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-7">
-        {data.data.map((day) => (
+        {weather.daily.map((day) => (
           <DayCard key={day.date} day={day} imperial={imperial} />
         ))}
       </div>

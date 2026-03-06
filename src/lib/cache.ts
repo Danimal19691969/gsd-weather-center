@@ -32,6 +32,11 @@ export async function cachedFetch<T>(
     })
     .catch((err) => {
       inflight.delete(key);
+      // Serve stale data if available instead of throwing
+      if (cached) {
+        console.log("CACHE STALE FALLBACK", key);
+        return cached.data as T;
+      }
       throw err;
     });
 

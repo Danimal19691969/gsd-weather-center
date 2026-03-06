@@ -2,6 +2,7 @@
 
 import { LocationProvider, useLocation } from "@/lib/context/LocationContext";
 import { BuoyProvider } from "@/lib/context/BuoyContext";
+import { useLoadWeather } from "@/hooks/useLoadWeather";
 import { WeatherMap } from "./map/WeatherMap";
 import { LocationSearch } from "./map/LocationSearch";
 import { GeolocationButton } from "./map/GeolocationButton";
@@ -17,6 +18,7 @@ import { UnitToggle } from "./UnitToggle";
 
 function DashboardContent() {
   const { lat, lon, locationName } = useLocation();
+  useLoadWeather(lat, lon);
 
   return (
     <div className="min-h-screen bg-hud-bg p-4">
@@ -48,19 +50,19 @@ function DashboardContent() {
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="lg:col-span-1">
-          <CurrentConditions lat={lat} lon={lon} />
+          <CurrentConditions />
         </div>
         <div className="lg:col-span-2">
-          <DailyForecastPanel lat={lat} lon={lon} />
+          <DailyForecastPanel />
         </div>
       </div>
 
       <div className="mt-4">
-        <HourlyTimeline lat={lat} lon={lon} />
+        <HourlyTimeline />
       </div>
 
       <div className="mt-4">
-        <MarinePanel lat={lat} lon={lon} />
+        <MarinePanel />
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-3">

@@ -27,10 +27,20 @@ function weatherCodeToDescription(code: number): string {
   return "Unknown";
 }
 
-export async function getCurrentWeather(
+// ---------------------------------------------------------------------------
+// Combined fetch: current + hourly + daily in a single Open-Meteo request
+// ---------------------------------------------------------------------------
+
+export interface AllWeatherData {
+  current: CurrentWeather;
+  hourly: HourlyForecast[];
+  daily: DailyForecast[];
+}
+
+export async function fetchAllWeather(
   lat: number,
   lon: number
-): Promise<ToolResult<CurrentWeather>> {
+): Promise<ToolResult<AllWeatherData>> {
   try {
     const params = new URLSearchParams({
       latitude: String(lat),
@@ -47,36 +57,79 @@ export async function getCurrentWeather(
         "uv_index",
         "visibility",
       ].join(","),
+      hourly: [
+        "temperature_2m",
+        "precipitation_probability",
+        "precipitation",
+        "wind_speed_10m",
+        "wind_direction_10m",
+        "weather_code",
+      ].join(","),
+      daily: [
+        "temperature_2m_max",
+        "temperature_2m_min",
+        "precipitation_sum",
+        "weather_code",
+      ].join(","),
+      forecast_hours: "48",
+      forecast_days: "7",
       timezone: "auto",
     });
 
     const json = await cachedFetch(
-      `weather:current:${lat}:${lon}`,
+      `weather:all:${lat}:${lon}`,
       async () => {
-        const res = await fetch(`${OPEN_METEO_BASE}/forecast?${params}`);
-        if (!res.ok) throw new Error(`Open-Meteo returned ${res.status}: ${res.statusText}`);
+        const res = await fetch(`${OPEN_METEO_BASE}/forecast?${params}`, {
+          next: { revalidate: 600 },
+        });
+        if (!res.ok)
+          throw new Error(`Open-Meteo returned ${res.status}: ${res.statusText}`);
         return res.json();
       }
     );
-    const c = json.current;
 
-    return {
-      success: true,
-      data: {
-        temperature: c.temperature_2m,
-        feelsLike: c.apparent_temperature,
-        humidity: c.relative_humidity_2m,
-        windSpeed: c.wind_speed_10m,
-        windDirection: c.wind_direction_10m,
-        pressure: c.surface_pressure,
-        uvIndex: c.uv_index,
-        visibility: c.visibility,
-        weatherCode: c.weather_code,
-        description: weatherCodeToDescription(c.weather_code),
-        precipitation: c.precipitation,
-        timestamp: c.time,
-      },
+    const c = json.current;
+    const current: CurrentWeather = {
+      temperature: c.temperature_2m,
+      feelsLike: c.apparent_temperature,
+      humidity: c.relative_humidity_2m,
+      windSpeed: c.wind_speed_10m,
+      windDirection: c.wind_direction_10m,
+      pressure: c.surface_pressure,
+      uvIndex: c.uv_index,
+      visibility: c.visibility,
+      weatherCode: c.weather_code,
+      description: weatherCodeToDescription(c.weather_code),
+      precipitation: c.precipitation,
+      timestamp: c.time,
     };
+
+    const h = json.hourly;
+    const hourly: HourlyForecast[] = h.time.map(
+      (time: string, i: number) => ({
+        time,
+        temperature: h.temperature_2m[i],
+        precipitation: h.precipitation[i],
+        precipitationProbability: h.precipitation_probability[i],
+        windSpeed: h.wind_speed_10m[i],
+        windDirection: h.wind_direction_10m[i],
+        weatherCode: h.weather_code[i],
+      })
+    );
+
+    const d = json.daily;
+    const daily: DailyForecast[] = d.time.map(
+      (date: string, i: number) => ({
+        date,
+        tempMax: d.temperature_2m_max[i],
+        tempMin: d.temperature_2m_min[i],
+        precipitationSum: d.precipitation_sum[i],
+        weatherCode: d.weather_code[i],
+        description: weatherCodeToDescription(d.weather_code[i]),
+      })
+    );
+
+    return { success: true, data: { current, hourly, daily } };
   } catch (err) {
     return {
       success: false,
@@ -86,88 +139,30 @@ export async function getCurrentWeather(
   }
 }
 
+// ---------------------------------------------------------------------------
+// Legacy per-tool functions (used by AI chat tool calls)
+// ---------------------------------------------------------------------------
+
+export async function getCurrentWeather(
+  lat: number,
+  lon: number
+): Promise<ToolResult<CurrentWeather>> {
+  const result = await fetchAllWeather(lat, lon);
+  if (!result.success) return result;
+  return { success: true, data: result.data.current };
+}
+
 export async function getForecast(
   lat: number,
   lon: number,
   type: "hourly" | "daily"
 ): Promise<ToolResult<HourlyForecast[] | DailyForecast[]>> {
-  try {
-    const params = new URLSearchParams({
-      latitude: String(lat),
-      longitude: String(lon),
-      timezone: "auto",
-    });
-
-    if (type === "hourly") {
-      params.set(
-        "hourly",
-        [
-          "temperature_2m",
-          "precipitation_probability",
-          "precipitation",
-          "wind_speed_10m",
-          "wind_direction_10m",
-          "weather_code",
-        ].join(",")
-      );
-      params.set("forecast_hours", "48");
-    } else {
-      params.set(
-        "daily",
-        [
-          "temperature_2m_max",
-          "temperature_2m_min",
-          "precipitation_sum",
-          "weather_code",
-        ].join(",")
-      );
-      params.set("forecast_days", "7");
-    }
-
-    const json = await cachedFetch(
-      `weather:forecast:${type}:${lat}:${lon}`,
-      async () => {
-        const res = await fetch(`${OPEN_METEO_BASE}/forecast?${params}`);
-        if (!res.ok) throw new Error(`Open-Meteo returned ${res.status}: ${res.statusText}`);
-        return res.json();
-      }
-    );
-
-    if (type === "hourly") {
-      const h = json.hourly;
-      const data: HourlyForecast[] = h.time.map(
-        (time: string, i: number) => ({
-          time,
-          temperature: h.temperature_2m[i],
-          precipitation: h.precipitation[i],
-          precipitationProbability: h.precipitation_probability[i],
-          windSpeed: h.wind_speed_10m[i],
-          windDirection: h.wind_direction_10m[i],
-          weatherCode: h.weather_code[i],
-        })
-      );
-      return { success: true, data };
-    } else {
-      const d = json.daily;
-      const data: DailyForecast[] = d.time.map(
-        (date: string, i: number) => ({
-          date,
-          tempMax: d.temperature_2m_max[i],
-          tempMin: d.temperature_2m_min[i],
-          precipitationSum: d.precipitation_sum[i],
-          weatherCode: d.weather_code[i],
-          description: weatherCodeToDescription(d.weather_code[i]),
-        })
-      );
-      return { success: true, data };
-    }
-  } catch (err) {
-    return {
-      success: false,
-      error: err instanceof Error ? err.message : "Unknown error",
-      source: "open-meteo",
-    };
-  }
+  const result = await fetchAllWeather(lat, lon);
+  if (!result.success) return result;
+  return {
+    success: true,
+    data: type === "hourly" ? result.data.hourly : result.data.daily,
+  };
 }
 
 export async function getMarineWeather(
@@ -193,7 +188,9 @@ export async function getMarineWeather(
     const json = await cachedFetch(
       `weather:marine:${lat}:${lon}`,
       async () => {
-        const res = await fetch(`${MARINE_BASE}/marine?${params}`);
+        const res = await fetch(`${MARINE_BASE}/marine?${params}`, {
+          next: { revalidate: 600 },
+        });
         if (!res.ok) throw new Error(`Open-Meteo Marine returned ${res.status}: ${res.statusText}`);
         return res.json();
       }

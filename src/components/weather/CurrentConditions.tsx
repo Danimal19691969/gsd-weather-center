@@ -1,8 +1,8 @@
 "use client";
 
-import { useCurrentWeather } from "@/lib/hooks/useWeather";
 import { useUnits } from "@/lib/context/UnitsContext";
 import { cToF, mpsToMph, kmToMiles } from "@/lib/units";
+import { useWeatherStore } from "@/store/weatherStore";
 import { Panel } from "@/components/ui/Panel";
 import { StatBlock } from "@/components/ui/StatBlock";
 import { LoadingPanel } from "@/components/ui/LoadingPanel";
@@ -13,26 +13,23 @@ function windDirectionLabel(deg: number): string {
   return dirs[Math.round(deg / 45) % 8];
 }
 
-interface Props {
-  lat: number;
-  lon: number;
-}
-
-export function CurrentConditions({ lat, lon }: Props) {
-  const { data, isLoading } = useCurrentWeather(lat, lon);
+export function CurrentConditions() {
   const { units } = useUnits();
   const imperial = units === "imperial";
+  const weather = useWeatherStore((s) => s.weather);
+  const loading = useWeatherStore((s) => s.loading);
+  const error = useWeatherStore((s) => s.error);
 
-  if (isLoading) return <LoadingPanel title="Current Conditions" />;
-  if (!data?.success)
+  if (!weather && loading) return <LoadingPanel title="Current Conditions" />;
+  if (!weather)
     return (
       <ErrorPanel
         title="Current Conditions"
-        message={!data ? "No data" : data.error}
+        message={error ?? "No data"}
       />
     );
 
-  const w = data.data;
+  const w = weather.current;
   const temp = imperial ? cToF(w.temperature) : w.temperature;
   const feelsLike = imperial ? cToF(w.feelsLike) : w.feelsLike;
   const tempUnit = imperial ? "°F" : "°C";

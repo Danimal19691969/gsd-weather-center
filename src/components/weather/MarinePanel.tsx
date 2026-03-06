@@ -1,8 +1,8 @@
 "use client";
 
-import { useMarineWeather } from "@/lib/hooks/useWeather";
 import { useUnits } from "@/lib/context/UnitsContext";
 import { metersToFeet, cToF } from "@/lib/units";
+import { useWeatherStore } from "@/store/weatherStore";
 import { Panel } from "@/components/ui/Panel";
 import { StatBlock } from "@/components/ui/StatBlock";
 import { LoadingPanel } from "@/components/ui/LoadingPanel";
@@ -30,28 +30,25 @@ function val(v: number | null, decimals = 1): string {
   return v !== null ? v.toFixed(decimals) : "—";
 }
 
-interface Props {
-  lat: number;
-  lon: number;
-}
-
-export function MarinePanel({ lat, lon }: Props) {
-  const { data, isLoading } = useMarineWeather(lat, lon);
+export function MarinePanel() {
   const { units } = useUnits();
   const imperial = units === "imperial";
   const heightUnit = imperial ? "ft" : "m";
   const tempUnit = imperial ? "°F" : "°C";
+  const weather = useWeatherStore((s) => s.weather);
+  const loading = useWeatherStore((s) => s.loading);
+  const error = useWeatherStore((s) => s.error);
 
-  if (isLoading) return <LoadingPanel title="Marine Conditions" />;
-  if (!data?.success)
+  if (!weather && loading) return <LoadingPanel title="Marine Conditions" />;
+  if (!weather?.marine)
     return (
       <ErrorPanel
         title="Marine Conditions"
-        message={!data ? "No data" : data.error}
+        message={error ?? "No data"}
       />
     );
 
-  const m = data.data;
+  const m = weather.marine;
 
   return (
     <Panel title="Marine Conditions">

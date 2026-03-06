@@ -4,10 +4,15 @@ import useSWR from "swr";
 import type { ToolResult } from "@/lib/types/tool-result";
 import type { BuoyStation, BuoyObservation } from "@/lib/types/buoy";
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+async function fetcher<T>(url: string): Promise<T> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+  return res.json();
+}
 
 const SWR_OPTIONS = {
   refreshInterval: 300_000,
+  dedupingInterval: 300_000,
   revalidateOnFocus: false,
   keepPreviousData: true,
 };

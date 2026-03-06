@@ -32,7 +32,9 @@ export async function fetchWindGrid(bounds: ViewportBounds): Promise<WindGrid> {
         longitude: lons.join(","),
         current: "wind_speed_10m,wind_direction_10m",
       });
-      const res = await fetch(`${OPEN_METEO_BASE}/forecast?${params}`);
+      const res = await fetch(`${OPEN_METEO_BASE}/forecast?${params}`, {
+        next: { revalidate: 600 },
+      });
       if (!res.ok) throw new Error(`Open-Meteo wind: ${res.status}`);
       return res.json();
     },

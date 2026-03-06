@@ -1,8 +1,8 @@
 "use client";
 
-import { useHourlyForecast } from "@/lib/hooks/useWeather";
 import { useUnits } from "@/lib/context/UnitsContext";
 import { cToF, mpsToMph } from "@/lib/units";
+import { useWeatherStore } from "@/store/weatherStore";
 import { Panel } from "@/components/ui/Panel";
 import { LoadingPanel } from "@/components/ui/LoadingPanel";
 import { ErrorPanel } from "@/components/ui/ErrorPanel";
@@ -45,29 +45,26 @@ function HourCell({ hour, imperial }: { hour: HourlyForecast; imperial: boolean 
   );
 }
 
-interface Props {
-  lat: number;
-  lon: number;
-}
-
-export function HourlyTimeline({ lat, lon }: Props) {
-  const { data, isLoading } = useHourlyForecast(lat, lon);
+export function HourlyTimeline() {
   const { units } = useUnits();
   const imperial = units === "imperial";
+  const weather = useWeatherStore((s) => s.weather);
+  const loading = useWeatherStore((s) => s.loading);
+  const error = useWeatherStore((s) => s.error);
 
-  if (isLoading) return <LoadingPanel title="Hourly Forecast" />;
-  if (!data?.success)
+  if (!weather && loading) return <LoadingPanel title="Hourly Forecast" />;
+  if (!weather)
     return (
       <ErrorPanel
         title="Hourly Forecast"
-        message={!data ? "No data" : data.error}
+        message={error ?? "No data"}
       />
     );
 
   return (
     <Panel title="48-Hour Forecast">
       <div className="flex gap-2 overflow-x-auto pb-2">
-        {data.data.map((hour) => (
+        {weather.hourly.map((hour) => (
           <HourCell key={hour.time} hour={hour} imperial={imperial} />
         ))}
       </div>
