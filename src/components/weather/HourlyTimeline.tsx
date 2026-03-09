@@ -1,12 +1,13 @@
 "use client";
 
 import { useUnits } from "@/lib/context/UnitsContext";
-import { cToF, mpsToMph } from "@/lib/units";
+import { cToF, kmhToMph } from "@/lib/units";
 import { useWeatherStore } from "@/store/weatherStore";
 import { Panel } from "@/components/ui/Panel";
 import { LoadingPanel } from "@/components/ui/LoadingPanel";
 import { ErrorPanel } from "@/components/ui/ErrorPanel";
 import type { HourlyForecast } from "@/lib/types/weather";
+import { WeatherIcon } from "./WeatherIcon";
 
 function formatHour(timeStr: string): string {
   const date = new Date(timeStr);
@@ -23,14 +24,17 @@ function windDirectionLabel(deg: number): string {
 
 function HourCell({ hour, imperial }: { hour: HourlyForecast; imperial: boolean }) {
   const temp = imperial ? cToF(hour.temperature) : hour.temperature;
-  const wind = imperial ? mpsToMph(hour.windSpeed) : hour.windSpeed;
+  const wind = imperial ? kmhToMph(hour.windSpeed) : hour.windSpeed;
 
   return (
     <div className="flex min-w-[60px] flex-col items-center rounded border border-hud-border bg-hud-bg px-2 py-2">
       <div className="font-mono text-[10px] text-hud-text-dim">
         {formatHour(hour.time)}
       </div>
-      <div className="mt-1 font-mono text-sm font-bold text-hud-text">
+      <div className="mt-1 text-hud-text-dim">
+        <WeatherIcon weatherCode={hour.weatherCode} size="sm" />
+      </div>
+      <div className="mt-0.5 font-mono text-sm font-bold text-hud-text">
         {Math.round(temp)}&deg;
       </div>
       {hour.precipitationProbability > 0 && (

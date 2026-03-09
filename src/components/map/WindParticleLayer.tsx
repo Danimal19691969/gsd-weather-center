@@ -1,39 +1,81 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { useMap } from "react-map-gl";
-import { WindField } from "@/lib/wind/WindField";
 import { WindParticleSystem } from "@/lib/wind/WindParticleSystem";
-import type { WindGrid } from "@/lib/types/wind";
+import { fetchWind } from "@/lib/wind/windFetcher";
+
+// Longer initial delay lets the map fully settle (container resizing,
+// responsive layout, initial tile load) before the first wind fetch.
+// Subsequent moveend events use the shorter delay for responsive UX.
+const INITIAL_STABILIZATION_MS = 2000;
+const MOVEEND_STABILIZATION_MS = 400;
 
 interface Props {
   enabled: boolean;
-}
-
-interface WindGridJSON {
-  west: number;
-  south: number;
-  east: number;
-  north: number;
-  cols: number;
-  rows: number;
-  dx: number;
-  dy: number;
-  u: number[];
-  v: number[];
-  speed: number[];
-  timestamp: number;
 }
 
 export function WindParticleLayer({ enabled }: Props) {
   const { current: map } = useMap();
   const systemRef = useRef<WindParticleSystem | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const mapRef = useRef(map);
+
+  mapRef.current = map;
+
+  // -----------------------------------------------------------------------
+  // Stabilization guard: only fetch wind after the viewport has been
+  // unchanged for N ms. Every viewport change resets the timer, so
+  // oscillating viewports A→B→A produce ONE fetch for the final position.
+  // -----------------------------------------------------------------------
+  const stabilizeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastChangeTime = useRef(0);
+  const hasFetched = useRef(false);
+
+  const clearStabilizeTimer = useCallback(() => {
+    if (stabilizeTimer.current) {
+      clearTimeout(stabilizeTimer.current);
+      stabilizeTimer.current = null;
+    }
+  }, []);
+
+  const maybeFetchWind = useCallback(() => {
+    const m = mapRef.current;
+    if (!m) return;
+    const rawBounds = m.getBounds();
+    if (!rawBounds) return;
+
+    const bounds = {
+      west: rawBounds.getWest(),
+      south: rawBounds.getSouth(),
+      east: rawBounds.getEast(),
+      north: rawBounds.getNorth(),
+    };
+
+    lastChangeTime.current = Date.now();
+    clearStabilizeTimer();
+
+    const capturedTime = lastChangeTime.current;
+    const delay = hasFetched.current
+      ? MOVEEND_STABILIZATION_MS
+      : INITIAL_STABILIZATION_MS;
+
+    stabilizeTimer.current = setTimeout(async () => {
+      if (lastChangeTime.current !== capturedTime) return;
+
+      const field = await fetchWind(bounds);
+      if (field) {
+        hasFetched.current = true;
+        systemRef.current?.setField(field);
+      }
+    }, delay);
+  }, [clearStabilizeTimer]);
 
   // Create overlay canvas and particle system
   useEffect(() => {
-    if (!map) return;
-    const mapCanvas = map.getCanvas();
+    const m = mapRef.current;
+    if (!m) return;
+    const mapCanvas = m.getCanvas();
     const container = mapCanvas.parentElement;
     if (!container) return;
 
@@ -64,91 +106,66 @@ export function WindParticleLayer({ enabled }: Props) {
       systemRef.current = null;
       resizeObserver.disconnect();
     };
-  }, [map]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [!!map]);
 
-  // Fetch wind data and refresh every 10s + on moveend
+  // Wind fetch: moveend only — no periodic refresh, no render-triggered fetches
   useEffect(() => {
-    if (!enabled || !map) return;
+    const m = mapRef.current;
+    if (!enabled || !m) return;
 
-    let cancelled = false;
+    // moveend is the ONLY trigger for wind fetches.
+    // Each moveend resets the stabilization timer; the fetch only fires
+    // after the delay of quiet.
+    const onMoveEnd = () => maybeFetchWind();
+    m.on("moveend", onMoveEnd);
 
-    async function fetchAndUpdate() {
-      if (!map) return;
-      const bounds = map.getBounds();
-      if (!bounds) return;
-
-      try {
-        const res = await fetch(
-          `/api/wind?west=${bounds.getWest()}&south=${bounds.getSouth()}&east=${bounds.getEast()}&north=${bounds.getNorth()}`
-        );
-        const json = await res.json();
-        if (cancelled || !json.success) return;
-
-        const data: WindGridJSON = json.data;
-        const grid: WindGrid = {
-          ...data,
-          u: new Float32Array(data.u),
-          v: new Float32Array(data.v),
-          speed: new Float32Array(data.speed),
-        };
-        const field = new WindField(grid);
-        systemRef.current?.setField(field);
-      } catch {
-        // Silently fail — wind is a nice-to-have overlay
-      }
-    }
-
-    fetchAndUpdate();
-    const interval = setInterval(fetchAndUpdate, 10_000);
-
-    let debounceTimer: ReturnType<typeof setTimeout>;
-    const onMoveEnd = () => {
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(fetchAndUpdate, 1_000);
-    };
-    map.on("moveend", onMoveEnd);
+    // Kick one stabilized fetch for the current viewport
+    maybeFetchWind();
 
     return () => {
-      cancelled = true;
-      clearInterval(interval);
-      clearTimeout(debounceTimer);
-      map.off("moveend", onMoveEnd);
+      m.off("moveend", onMoveEnd);
+      clearStabilizeTimer();
     };
-  }, [enabled, map]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, !!map, maybeFetchWind]);
 
-  // Start/stop particle system based on enabled
+  // Start/stop particle system
   useEffect(() => {
-    if (!map) return;
-
+    const m = mapRef.current;
+    if (!m) return;
     const system = systemRef.current;
     if (!system) return;
 
     if (enabled) {
       system.setProjector({
-        project: (lngLat) => map.project(lngLat),
-        unproject: (point) => map.unproject(point),
+        project: (lngLat) => m.project(lngLat),
+        unproject: (point) => m.unproject(point),
       });
       system.start();
     } else {
       system.stop();
     }
-  }, [enabled, map]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, !!map]);
 
-  // Update projector on map render for pan/zoom sync
+  // Projector sync on render (NO data fetching)
   useEffect(() => {
-    if (!map || !enabled) return;
+    const m = mapRef.current;
+    if (!m || !enabled) return;
 
     const onRender = () => {
       systemRef.current?.setProjector({
-        project: (lngLat) => map.project(lngLat),
-        unproject: (point) => map.unproject(point),
+        project: (lngLat) => m.project(lngLat),
+        unproject: (point) => m.unproject(point),
       });
     };
-    map.on("render", onRender);
+    m.on("render", onRender);
     return () => {
-      map.off("render", onRender);
+      m.off("render", onRender);
     };
-  }, [map, enabled]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [!!map, enabled]);
 
   return null;
 }

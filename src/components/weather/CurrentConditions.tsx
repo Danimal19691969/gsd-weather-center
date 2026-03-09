@@ -1,12 +1,13 @@
 "use client";
 
 import { useUnits } from "@/lib/context/UnitsContext";
-import { cToF, mpsToMph, kmToMiles } from "@/lib/units";
+import { cToF, kmhToMph, kmToMiles } from "@/lib/units";
 import { useWeatherStore } from "@/store/weatherStore";
 import { Panel } from "@/components/ui/Panel";
 import { StatBlock } from "@/components/ui/StatBlock";
 import { LoadingPanel } from "@/components/ui/LoadingPanel";
 import { ErrorPanel } from "@/components/ui/ErrorPanel";
+import { WeatherIcon } from "./WeatherIcon";
 
 function windDirectionLabel(deg: number): string {
   const dirs = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
@@ -32,18 +33,24 @@ export function CurrentConditions() {
   const w = weather.current;
   const temp = imperial ? cToF(w.temperature) : w.temperature;
   const feelsLike = imperial ? cToF(w.feelsLike) : w.feelsLike;
-  const tempUnit = imperial ? "°F" : "°C";
-  const wind = imperial ? mpsToMph(w.windSpeed) : w.windSpeed;
-  const windUnit = imperial ? "mph" : "m/s";
+  const wind = imperial ? kmhToMph(w.windSpeed) : w.windSpeed;
+  const windUnit = imperial ? "mph" : "km/h";
   const vis = imperial ? kmToMiles(w.visibility / 1000) : w.visibility / 1000;
   const visUnit = imperial ? "mi" : "km";
 
   return (
     <Panel title="Current Conditions">
       <div className="mb-4">
-        <div className="font-mono text-5xl font-bold text-hud-text">
-          {Math.round(temp)}
-          <span className="text-2xl text-hud-text-dim">&deg;{imperial ? "F" : "C"}</span>
+        <div className="flex items-center gap-3">
+          <span className="text-hud-text-dim">
+            <WeatherIcon weatherCode={w.weatherCode} size="lg" />
+          </span>
+          <div>
+            <div className="font-mono text-5xl font-bold text-hud-text">
+              {Math.round(temp)}
+              <span className="text-2xl text-hud-text-dim">&deg;{imperial ? "F" : "C"}</span>
+            </div>
+          </div>
         </div>
         <div className="font-mono text-sm text-hud-accent">{w.description}</div>
         <div className="font-mono text-xs text-hud-text-dim">

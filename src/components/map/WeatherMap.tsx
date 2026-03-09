@@ -7,6 +7,11 @@ import { Panel } from "@/components/ui/Panel";
 import { BuoyMarkers } from "./BuoyMarkers";
 import { WindParticleLayer } from "./WindParticleLayer";
 import { WindToggleButton } from "./WindToggleButton";
+import { WindLegend } from "@/components/wind/WindLegend";
+import { PrecipLayer } from "./PrecipLayer";
+import { PrecipToggleButton } from "./PrecipToggleButton";
+import { PrecipLegend } from "@/components/weather/PrecipLegend";
+import { ForecastTimelineUI } from "@/components/weather/ForecastTimeline";
 import "mapbox-gl/dist/mapbox-gl.css";
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
@@ -19,6 +24,7 @@ export function WeatherMap() {
     zoom: 8,
   });
   const [windEnabled, setWindEnabled] = useState(false);
+  const [precipEnabled, setPrecipEnabled] = useState(false);
 
   const onMove = useCallback((evt: ViewStateChangeEvent) => {
     setViewState(evt.viewState);
@@ -58,13 +64,29 @@ export function WeatherMap() {
           <NavigationControl position="top-right" showCompass={false} />
           <BuoyMarkers />
           <WindParticleLayer enabled={windEnabled} />
+          <PrecipLayer enabled={precipEnabled} />
         </Map>
-        <div className="absolute top-2 left-2 z-10">
+        <div className="absolute top-2 left-2 z-10 flex gap-1">
           <WindToggleButton
             enabled={windEnabled}
             onToggle={() => setWindEnabled((v) => !v)}
           />
+          <PrecipToggleButton
+            enabled={precipEnabled}
+            onToggle={() => setPrecipEnabled((v) => !v)}
+          />
         </div>
+        {windEnabled && (
+          <div className="absolute bottom-2 left-2 z-10">
+            <WindLegend />
+          </div>
+        )}
+        {precipEnabled && (
+          <div className="absolute right-2 bottom-2 left-2 z-10 flex flex-col gap-1">
+            <ForecastTimelineUI />
+            <PrecipLegend />
+          </div>
+        )}
       </div>
     </Panel>
   );

@@ -150,6 +150,11 @@ export function ChatPanel() {
           onKeyDown={onKeyDown}
           placeholder="Ask about weather, buoys, or conditions..."
           disabled={isLoading}
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          suppressHydrationWarning
           className="flex-1 rounded border border-hud-border bg-hud-bg px-3 py-1.5 font-mono text-xs text-hud-text placeholder:text-hud-text-dim focus:border-hud-accent focus:outline-none disabled:opacity-50"
         />
         <button

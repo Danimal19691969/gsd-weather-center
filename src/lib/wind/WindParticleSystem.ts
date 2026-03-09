@@ -1,4 +1,5 @@
 import { WindField } from "./WindField";
+import { speedToColor } from "./colorScale";
 
 interface Particle {
   lat: number;
@@ -17,7 +18,25 @@ interface Projector {
 const PARTICLE_COUNT = 2500;
 const MIN_AGE = 60;
 const MAX_AGE = 120;
-const SPEED_SCALE = 0.8;
+
+// Velocity scale: pixels per frame per m/s of wind.
+// At 10 m/s wind → 0.08 * 10 = 0.8 px/frame → slow, syrupy motion.
+// Old value was 0.8 which gave 8 px/frame at 10 m/s — far too fast.
+export const SPEED_SCALE = 0.08;
+
+// Cap frame delta to prevent particle jumps on tab-switch or lag spikes.
+export const MAX_DELTA = 33; // ms (≈30fps minimum)
+
+// Re-export from colorScale for backwards compatibility
+export { speedToColor } from "./colorScale";
+
+// Convert hex color to rgba string with given alpha
+function hexToRgba(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(3)})`;
+}
 
 export class WindParticleSystem {
   private particles: Particle[] = [];
@@ -27,6 +46,7 @@ export class WindParticleSystem {
   private animId = 0;
   private projector: Projector | null = null;
   private running = false;
+  private lastFrameTime = 0;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -47,6 +67,7 @@ export class WindParticleSystem {
   start() {
     if (this.running) return;
     this.running = true;
+    this.lastFrameTime = 0;
     this.initParticles();
     this.tick();
   }
@@ -103,6 +124,16 @@ export class WindParticleSystem {
       return;
     }
 
+    // Stable timestep: cap frame delta to prevent jumps
+    const now = performance.now();
+    if (this.lastFrameTime === 0) this.lastFrameTime = now;
+    const rawDt = now - this.lastFrameTime;
+    const dt = Math.min(rawDt, MAX_DELTA);
+    this.lastFrameTime = now;
+
+    // Scale factor normalized to 16.67ms (60fps baseline)
+    const dtScale = dt / 16.67;
+
     const ctx = this.ctx;
     const w = this.canvas.width;
     const h = this.canvas.height;
@@ -114,7 +145,7 @@ export class WindParticleSystem {
     ctx.fillRect(0, 0, w, h);
     ctx.globalCompositeOperation = prev;
 
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 1.2;
 
     for (let i = 0; i < this.particles.length; i++) {
       const p = this.particles[i];
@@ -131,8 +162,10 @@ export class WindParticleSystem {
       }
 
       const projected = this.projector.project([p.lon, p.lat]);
-      const nx = projected.x + uv[0] * SPEED_SCALE;
-      const ny = projected.y - uv[1] * SPEED_SCALE;
+
+      // Apply velocity with frame-time normalization
+      const nx = projected.x + uv[0] * SPEED_SCALE * dtScale;
+      const ny = projected.y - uv[1] * SPEED_SCALE * dtScale;
 
       // Skip if off-screen
       if (nx < 0 || nx >= w || ny < 0 || ny >= h) {
@@ -140,10 +173,14 @@ export class WindParticleSystem {
         continue;
       }
 
+      // Wind magnitude for color and alpha
       const speed = Math.sqrt(uv[0] ** 2 + uv[1] ** 2);
-      const alpha = Math.min(1, 0.15 + speed / 12) * (1 - p.age / p.maxAge);
+      const alpha = Math.min(1, 0.2 + speed / 15) * (1 - p.age / p.maxAge);
 
-      ctx.strokeStyle = `rgba(6, 182, 212, ${alpha.toFixed(3)})`;
+      // Color by wind speed band
+      const color = speedToColor(speed);
+      ctx.strokeStyle = hexToRgba(color, alpha);
+
       ctx.beginPath();
       ctx.moveTo(p.x, p.y);
       ctx.lineTo(nx, ny);

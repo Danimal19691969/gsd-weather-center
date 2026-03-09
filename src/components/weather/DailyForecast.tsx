@@ -7,6 +7,7 @@ import { Panel } from "@/components/ui/Panel";
 import { LoadingPanel } from "@/components/ui/LoadingPanel";
 import { ErrorPanel } from "@/components/ui/ErrorPanel";
 import type { DailyForecast } from "@/lib/types/weather";
+import { WeatherIcon } from "./WeatherIcon";
 
 function formatDay(dateStr: string): string {
   const date = new Date(dateStr + "T12:00:00");
@@ -24,7 +25,10 @@ function DayCard({ day, imperial }: { day: DailyForecast; imperial: boolean }) {
       <div className="font-mono text-[10px] uppercase tracking-wider text-hud-text-dim">
         {formatDay(day.date)}
       </div>
-      <div className="mt-1 font-mono text-xs text-hud-accent">
+      <div className="mt-1 text-hud-text-dim">
+        <WeatherIcon weatherCode={day.weatherCode} size="md" />
+      </div>
+      <div className="mt-0.5 font-mono text-xs text-hud-accent">
         {day.description}
       </div>
       <div className="mt-2 flex items-baseline gap-1">

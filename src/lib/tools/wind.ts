@@ -1,8 +1,10 @@
 import { cachedFetch } from "@/lib/cache";
+import { fetchWithRetry, type RetryOptions } from "@/lib/fetchWithRetry";
 import type { WindGrid, ViewportBounds } from "@/lib/types/wind";
 
 const OPEN_METEO_BASE = "https://api.open-meteo.com/v1";
 const GRID_SIZE = 12;
+const WIND_CACHE_TTL = 5 * 60_000; // 5 minutes
 
 export async function fetchWindGrid(bounds: ViewportBounds): Promise<WindGrid> {
   const west = Math.floor(bounds.west * 10) / 10;
@@ -32,13 +34,14 @@ export async function fetchWindGrid(bounds: ViewportBounds): Promise<WindGrid> {
         longitude: lons.join(","),
         current: "wind_speed_10m,wind_direction_10m",
       });
-      const res = await fetch(`${OPEN_METEO_BASE}/forecast?${params}`, {
+      const res = await fetchWithRetry(`${OPEN_METEO_BASE}/forecast?${params}`, {
+        retries: 3,
+        baseDelayMs: 1000,
         next: { revalidate: 600 },
-      });
-      if (!res.ok) throw new Error(`Open-Meteo wind: ${res.status}`);
+      } as RetryOptions & RequestInit);
       return res.json();
     },
-    60_000
+    WIND_CACHE_TTL
   );
 
   const results: Array<{ current: { wind_speed_10m: number; wind_direction_10m: number } }> =
