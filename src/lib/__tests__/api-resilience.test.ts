@@ -6,14 +6,18 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 describe("fetchWithRetry", () => {
   let fetchWithRetry: typeof import("@/lib/fetchWithRetry").fetchWithRetry;
+  let resetBackoff: typeof import("@/lib/fetchWithRetry").resetBackoff;
 
   beforeEach(async () => {
     vi.resetModules();
     const mod = await import("@/lib/fetchWithRetry");
     fetchWithRetry = mod.fetchWithRetry;
+    resetBackoff = mod.resetBackoff;
+    resetBackoff();
   });
 
   afterEach(() => {
+    resetBackoff();
     vi.restoreAllMocks();
   });
 
@@ -29,7 +33,7 @@ describe("fetchWithRetry", () => {
     expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
-  it("retries on 429 and succeeds on second attempt", async () => {
+  it("activates global backoff on 429 and blocks further retries", async () => {
     const mockFetch = vi
       .fn()
       .mockResolvedValueOnce({ ok: false, status: 429, statusText: "Too Many Requests" })
@@ -40,12 +44,12 @@ describe("fetchWithRetry", () => {
       });
     vi.stubGlobal("fetch", mockFetch);
 
-    const res = await fetchWithRetry("https://example.com/api", {
-      retries: 2,
-      baseDelayMs: 10,
-    });
-    expect(res.ok).toBe(true);
-    expect(mockFetch).toHaveBeenCalledTimes(2);
+    // 429 activates global backoff — subsequent retries are blocked
+    await expect(
+      fetchWithRetry("https://example.com/api", { retries: 2, baseDelayMs: 10 })
+    ).rejects.toThrow("backoff");
+    // Only one fetch call made (the initial 429), second retry blocked by backoff
+    expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
   it("retries on 500 server errors", async () => {
@@ -67,7 +71,7 @@ describe("fetchWithRetry", () => {
     expect(mockFetch).toHaveBeenCalledTimes(2);
   });
 
-  it("throws after exhausting all retries", async () => {
+  it("throws after 429 with backoff — does not exhaust all retries", async () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: false,
       status: 429,
@@ -78,7 +82,8 @@ describe("fetchWithRetry", () => {
     await expect(
       fetchWithRetry("https://example.com/api", { retries: 3, baseDelayMs: 10 })
     ).rejects.toThrow("429");
-    expect(mockFetch).toHaveBeenCalledTimes(3);
+    // Only 1 fetch call: first attempt gets 429, activates backoff, subsequent retries blocked
+    expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
   it("does not retry on 4xx errors other than 429", async () => {

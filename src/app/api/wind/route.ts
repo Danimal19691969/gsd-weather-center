@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchWindGrid } from "@/lib/tools/wind";
 import { normalizeBoundsForCache, boundsToKey } from "@/lib/wind/bounds";
+import { isBackoffActive } from "@/lib/fetchWithRetry";
 
 // ---------------------------------------------------------------------------
 // HMR-safe cache — globalThis survives module re-evaluation in dev mode.
@@ -77,6 +78,23 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // If global backoff is active, serve stale immediately instead of hitting upstream
+    if (isBackoffActive()) {
+      const staleEntry = getCached(cacheKey);
+      if (staleEntry) {
+        console.log("WIND SERVING STALE CACHE (backoff active)", cacheKey);
+        return NextResponse.json(
+          { success: true, data: staleEntry.data },
+          { headers: { "Cache-Control": "public, s-maxage=60" } }
+        );
+      }
+      console.log("WIND BACKOFF ACTIVE — no stale cache available", cacheKey);
+      return NextResponse.json(
+        { success: false, error: "Wind service temporarily unavailable (rate limited)" },
+        { status: 200, headers: { "Cache-Control": "public, s-maxage=60" } }
+      );
+    }
+
     // Deduplicate concurrent requests for same bounds
     const { inflight } = getCacheState();
     let pending = inflight.get(cacheKey);
@@ -104,7 +122,13 @@ export async function GET(request: NextRequest) {
       { headers: { "Cache-Control": "public, s-maxage=300" } }
     );
   } catch (error) {
-    console.error("WIND API ERROR:", error);
+    // Quiet log for expected backoff errors, full log for unexpected errors
+    const msg = error instanceof Error ? error.message : String(error);
+    if (msg.includes("429") || msg.includes("backoff")) {
+      console.log("WIND BACKOFF — serving fallback");
+    } else {
+      console.error("WIND API ERROR:", error);
+    }
 
     // Serve stale cache if available
     const { searchParams } = request.nextUrl;
@@ -114,9 +138,10 @@ export async function GET(request: NextRequest) {
       east: parseFloat(searchParams.get("east") ?? "0"),
       north: parseFloat(searchParams.get("north") ?? "0"),
     });
-    const staleEntry = getCached(boundsToKey(normalized));
+    const staleKey = boundsToKey(normalized);
+    const staleEntry = getCached(staleKey);
     if (staleEntry) {
-      console.log("WIND STALE CACHE FALLBACK", boundsToKey(normalized));
+      console.log("WIND SERVING STALE CACHE", staleKey);
       return NextResponse.json(
         { success: true, data: staleEntry.data },
         { headers: { "Cache-Control": "public, s-maxage=60" } }
@@ -125,7 +150,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(
       { success: false, error: "Wind service temporarily unavailable" },
-      { status: 500 }
+      { status: 200, headers: { "Cache-Control": "public, s-maxage=60" } }
     );
   }
 }

@@ -35,14 +35,16 @@ export function useLoadPrecipGrid() {
       if (timerRef.current) clearTimeout(timerRef.current);
 
       timerRef.current = setTimeout(() => {
-        lastKeyRef.current = key;
         setLoading(true);
+        console.log("[precip] PRECIP FETCH START key=" + key);
 
+        // Send rounded bounds to match the cache key and reduce
+        // server-side cache fragmentation.
         const params = new URLSearchParams({
-          west: String(bounds.west),
-          south: String(bounds.south),
-          east: String(bounds.east),
-          north: String(bounds.north),
+          west: String(Math.floor(bounds.west * 10) / 10),
+          south: String(Math.floor(bounds.south * 10) / 10),
+          east: String(Math.ceil(bounds.east * 10) / 10),
+          north: String(Math.ceil(bounds.north * 10) / 10),
           zoom: String(Math.round(bounds.zoom)),
         });
 
@@ -50,12 +52,20 @@ export function useLoadPrecipGrid() {
           .then((res) => res.json())
           .then((json) => {
             if (json.ok && json.data) {
+              // Only mark key as fetched on success — failed fetches must not
+              // poison the key, otherwise retries are blocked.
+              lastKeyRef.current = key;
+              console.log(`[precip] PRECIP GRID LOADED cells=${json.data.length}`);
               setGrid(json.data);
             } else {
+              console.log("[precip] PRECIP FETCH FAILED:", json.error);
               setError(json.error ?? "Failed to load precipitation grid");
             }
           })
-          .catch((err) => setError(err.message))
+          .catch((err) => {
+            console.log("[precip] PRECIP FETCH ERROR:", err.message);
+            setError(err.message);
+          })
           .finally(() => setLoading(false));
       }, DEBOUNCE_MS);
     },

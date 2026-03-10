@@ -154,41 +154,82 @@ export class PrecipField {
 
   /**
    * Render to an RGBA pixel buffer for use with ImageData.
-   * Each pixel is mapped to a lat/lon via the projector, then interpolated.
+   * Each pixel is mapped to a lat/lon via the projector, then bilinearly
+   * interpolated for smooth gradients.
    *
-   * For performance, renders at RENDER_STEP pixel intervals and fills blocks.
+   * For performance, samples at STEP-pixel intervals and bilinearly
+   * interpolates between samples to fill every pixel smoothly.
    */
   renderToBuffer(
     width: number,
     height: number,
     projector: Projector
   ): Uint8ClampedArray {
-    // Render at reduced resolution for performance, then fill blocks
     const STEP = 4;
     const buf = new Uint8ClampedArray(width * height * 4);
 
-    for (let y = 0; y < height; y += STEP) {
-      for (let x = 0; x < width; x += STEP) {
-        const geo = projector.unproject([x, y]);
+    // Number of sample columns/rows (one extra to cover the rightmost/bottom pixels)
+    const sampCols = Math.ceil(width / STEP) + 1;
+    const sampRows = Math.ceil(height / STEP) + 1;
+
+    // Pre-sample at grid points
+    const sR = new Float32Array(sampCols * sampRows);
+    const sG = new Float32Array(sampCols * sampRows);
+    const sB = new Float32Array(sampCols * sampRows);
+    const sA = new Float32Array(sampCols * sampRows);
+
+    for (let sy = 0; sy < sampRows; sy++) {
+      for (let sx = 0; sx < sampCols; sx++) {
+        const px = Math.min(sx * STEP, width - 1);
+        const py = Math.min(sy * STEP, height - 1);
+        const geo = projector.unproject([px, py]);
         const s = this.sample(geo.lat, geo.lng);
-
-        if (!s || s.value <= 0) continue;
-
-        const r = s.r;
-        const g = s.g;
-        const b = s.b;
-        const a = Math.round(s.alpha * 255);
-
-        // Fill the STEP×STEP block
-        for (let dy = 0; dy < STEP && y + dy < height; dy++) {
-          for (let dx = 0; dx < STEP && x + dx < width; dx++) {
-            const idx = ((y + dy) * width + (x + dx)) * 4;
-            buf[idx] = r;
-            buf[idx + 1] = g;
-            buf[idx + 2] = b;
-            buf[idx + 3] = a;
-          }
+        const idx = sy * sampCols + sx;
+        if (s && s.value > 0) {
+          sR[idx] = s.r;
+          sG[idx] = s.g;
+          sB[idx] = s.b;
+          sA[idx] = s.alpha * 255;
         }
+        // else stays 0 (transparent)
+      }
+    }
+
+    // Bilinearly interpolate between sample points for every pixel
+    for (let y = 0; y < height; y++) {
+      const sy = y / STEP;
+      const sy0 = Math.min(Math.floor(sy), sampRows - 2);
+      const sy1 = sy0 + 1;
+      const fy = sy - sy0;
+
+      for (let x = 0; x < width; x++) {
+        const sx = x / STEP;
+        const sx0 = Math.min(Math.floor(sx), sampCols - 2);
+        const sx1 = sx0 + 1;
+        const fx = sx - sx0;
+
+        const i00 = sy0 * sampCols + sx0;
+        const i10 = sy0 * sampCols + sx1;
+        const i01 = sy1 * sampCols + sx0;
+        const i11 = sy1 * sampCols + sx1;
+
+        const w00 = (1 - fx) * (1 - fy);
+        const w10 = fx * (1 - fy);
+        const w01 = (1 - fx) * fy;
+        const w11 = fx * fy;
+
+        const a = sA[i00] * w00 + sA[i10] * w10 + sA[i01] * w01 + sA[i11] * w11;
+        if (a < 1) continue; // fully transparent
+
+        const r = sR[i00] * w00 + sR[i10] * w10 + sR[i01] * w01 + sR[i11] * w11;
+        const g = sG[i00] * w00 + sG[i10] * w10 + sG[i01] * w01 + sG[i11] * w11;
+        const b = sB[i00] * w00 + sB[i10] * w10 + sB[i01] * w01 + sB[i11] * w11;
+
+        const idx = (y * width + x) * 4;
+        buf[idx] = Math.round(r);
+        buf[idx + 1] = Math.round(g);
+        buf[idx + 2] = Math.round(b);
+        buf[idx + 3] = Math.round(a);
       }
     }
 

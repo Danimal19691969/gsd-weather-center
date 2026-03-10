@@ -54,8 +54,17 @@ export class WindParticleSystem {
   }
 
   setField(field: WindField) {
+    const boundsChanged = !this.field ||
+      field.bounds.west !== this.field.bounds.west ||
+      field.bounds.south !== this.field.bounds.south ||
+      field.bounds.east !== this.field.bounds.east ||
+      field.bounds.north !== this.field.bounds.north;
+
     this.field = field;
-    if (this.particles.length === 0 && this.running) {
+
+    // Re-scatter particles when field bounds change (e.g. after zoom)
+    // so they cover the new viewport instead of clustering in the old rectangle.
+    if (this.running && (this.particles.length === 0 || boundsChanged)) {
       this.initParticles();
     }
   }

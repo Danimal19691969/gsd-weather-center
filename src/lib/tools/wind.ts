@@ -1,5 +1,5 @@
 import { cachedFetch } from "@/lib/cache";
-import { fetchWithRetry, type RetryOptions } from "@/lib/fetchWithRetry";
+import { fetchWithRetry, isBackoffActive, type RetryOptions } from "@/lib/fetchWithRetry";
 import type { WindGrid, ViewportBounds } from "@/lib/types/wind";
 
 const OPEN_METEO_BASE = "https://api.open-meteo.com/v1";
@@ -29,6 +29,11 @@ export async function fetchWindGrid(bounds: ViewportBounds): Promise<WindGrid> {
   const json = await cachedFetch(
     cacheKey,
     async () => {
+      // Fail fast if global backoff is active — cachedFetch will serve stale
+      if (isBackoffActive()) {
+        throw new Error("Global backoff active — skipping upstream request");
+      }
+
       const params = new URLSearchParams({
         latitude: lats.join(","),
         longitude: lons.join(","),
@@ -53,7 +58,7 @@ export async function fetchWindGrid(bounds: ViewportBounds): Promise<WindGrid> {
 
   for (let i = 0; i < results.length; i++) {
     const current = results[i].current;
-    const ws = current.wind_speed_10m / 3.6; // km/h → m/s
+    const ws = current.wind_speed_10m / 3.6; // km/h -> m/s
     const wd = current.wind_direction_10m;
     const rad = ((wd + 180) * Math.PI) / 180;
 

@@ -1,17 +1,20 @@
 import type { ViewportBounds } from "@/lib/types/wind";
 
 /**
- * Normalize viewport bounds to 2 decimal places to prevent
+ * Normalize viewport bounds to 1 decimal place to prevent
  * micro-precision changes from triggering new API requests.
  * Floors west/south and ceils east/north to ensure full coverage.
  * Clamps to valid coordinate ranges.
+ *
+ * 1 decimal place (~11 km) is coarse enough that small pan/zoom
+ * movements reuse the same cache key, preventing request storms.
  */
 export function normalizeBounds(raw: ViewportBounds): ViewportBounds {
   return {
-    west: Math.max(-180, Math.floor(raw.west * 100) / 100),
-    south: Math.max(-90, Math.floor(raw.south * 100) / 100),
-    east: Math.min(180, Math.ceil(raw.east * 100) / 100),
-    north: Math.min(90, Math.ceil(raw.north * 100) / 100),
+    west: Math.max(-180, Math.floor(raw.west * 10) / 10),
+    south: Math.max(-90, Math.floor(raw.south * 10) / 10),
+    east: Math.min(180, Math.ceil(raw.east * 10) / 10),
+    north: Math.min(90, Math.ceil(raw.north * 10) / 10),
   };
 }
 

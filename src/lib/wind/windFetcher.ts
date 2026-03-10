@@ -65,8 +65,15 @@ async function fetchWindFromAPI(bounds: ViewportBounds): Promise<WindField | nul
         };
         return new WindField(grid);
       }
-      // API returned success: false — retry after delay
-      console.log(`[wind] attempt ${attempt + 1} failed: ${json.error ?? "no data"}`);
+
+      // If server says rate limited (backoff active), don't retry — it won't help
+      const err = json.error ?? "no data";
+      if (typeof err === "string" && err.includes("temporarily unavailable")) {
+        console.log(`[wind] server rate limited — stopping retries`);
+        return null;
+      }
+
+      console.log(`[wind] attempt ${attempt + 1} failed: ${err}`);
     } catch (err) {
       console.log(`[wind] attempt ${attempt + 1} error:`, err);
     }
@@ -109,12 +116,20 @@ export function fetchWind(
 
   console.log(`[wind] FETCH key=${key} prev=${state.lastViewportKey}`);
 
-  state.lastViewportKey = key;
   state.inflightKey = key;
 
   state.inflight = (async (): Promise<WindField | null> => {
     try {
-      return await fetchWindFromAPI(bounds);
+      const field = await fetchWindFromAPI(bounds);
+      // Only mark key as fetched on success — failed fetches must not
+      // poison the key, otherwise retries for the same viewport are blocked.
+      if (field) {
+        state.lastViewportKey = key;
+        console.log(`[wind] WIND FIELD REGENERATED key=${key}`);
+      } else {
+        console.log(`[wind] fetch returned null, key NOT saved (will retry)`);
+      }
+      return field;
     } finally {
       state.inflight = null;
       state.inflightKey = null;
@@ -147,14 +162,22 @@ export function createWindFetcher() {
       return inf;
     }
 
-    lastKey = key;
     infKey = key;
 
     console.log("WIND FETCH START", key);
 
     inf = (async (): Promise<WindField | null> => {
       try {
-        return await fetchWindFromAPI(bounds);
+        const field = await fetchWindFromAPI(bounds);
+        // Only mark key as fetched on success — failed fetches must not
+        // poison the key, otherwise retries for the same viewport are blocked.
+        if (field) {
+          lastKey = key;
+          console.log("WIND FIELD REGENERATED", key);
+        } else {
+          console.log("WIND fetch returned null, key NOT saved (will retry)");
+        }
+        return field;
       } finally {
         inf = null;
         infKey = null;

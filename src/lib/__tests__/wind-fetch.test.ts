@@ -69,7 +69,7 @@ describe("createWindFetcher", () => {
       return new Response(JSON.stringify({
         success: true,
         data: {
-          west: -137.24, south: 43.87, east: -108.12, north: 47.11,
+          west: -137.3, south: 43.8, east: -108.1, north: 47.2,
           cols: 12, rows: 12, dx: 1, dy: 1,
           u: new Array(144).fill(0),
           v: new Array(144).fill(0),
@@ -94,7 +94,7 @@ describe("createWindFetcher", () => {
   it("concurrent calls with same bounds trigger only one fetch", async () => {
     const { createWindFetcher } = await import("@/lib/wind/windFetcher");
     const fetcher = createWindFetcher();
-    const bounds = { west: -137.24, south: 43.87, east: -108.12, north: 47.11 };
+    const bounds = { west: -137.3, south: 43.8, east: -108.1, north: 47.2 };
 
     const promises = Array.from({ length: 10 }, () => fetcher(bounds));
     await Promise.all(promises);
@@ -105,15 +105,15 @@ describe("createWindFetcher", () => {
     const { createWindFetcher } = await import("@/lib/wind/windFetcher");
     const fetcher = createWindFetcher();
 
-    await fetcher({ west: -137.24, south: 43.87, east: -108.12, north: 47.11 });
-    await fetcher({ west: -130.00, south: 40.00, east: -100.00, north: 50.00 });
+    await fetcher({ west: -137.3, south: 43.8, east: -108.1, north: 47.2 });
+    await fetcher({ west: -130.0, south: 40.0, east: -100.0, north: 50.0 });
     expect(fetchCallCount).toBe(2);
   });
 
   it("same bounds repeated does not re-fetch (viewport key guard)", async () => {
     const { createWindFetcher } = await import("@/lib/wind/windFetcher");
     const fetcher = createWindFetcher();
-    const bounds = { west: -137.24, south: 43.87, east: -108.12, north: 47.11 };
+    const bounds = { west: -137.3, south: 43.8, east: -108.1, north: 47.2 };
 
     await fetcher(bounds);
     await fetcher(bounds);
@@ -124,7 +124,7 @@ describe("createWindFetcher", () => {
   it("force=true bypasses key dedup for periodic refresh", async () => {
     const { createWindFetcher } = await import("@/lib/wind/windFetcher");
     const fetcher = createWindFetcher();
-    const bounds = { west: -137.24, south: 43.87, east: -108.12, north: 47.11 };
+    const bounds = { west: -137.3, south: 43.8, east: -108.1, north: 47.2 };
 
     await fetcher(bounds);
     await fetcher(bounds, true);
@@ -144,10 +144,10 @@ describe("createWindFetcher", () => {
 
     expect(fetchCallCount).toBe(1);
     const url = fetchedUrls[0];
-    expect(url).toContain("west=-137.24");
-    expect(url).toContain("south=43.87");
-    expect(url).toContain("east=-108.12");
-    expect(url).toContain("north=47.11");
+    expect(url).toContain("west=-137.3");
+    expect(url).toContain("south=43.8");
+    expect(url).toContain("east=-108.1");
+    expect(url).toContain("north=47.2");
     expect(url).not.toContain("-137.2338508");
     expect(url).not.toContain("43.879011");
   });
@@ -183,7 +183,7 @@ describe("Viewport stabilization", () => {
   it("viewportKey returns different keys for meaningfully different bounds", async () => {
     const { viewportKey } = await import("@/lib/wind/windFetcher");
     const narrow = viewportKey({ west: -125.19, south: 45.23, east: -120.17, north: 45.8 });
-    const wide = viewportKey({ west: -137.24, south: 43.87, east: -108.12, north: 47.11 });
+    const wide = viewportKey({ west: -137.3, south: 43.8, east: -108.1, north: 47.2 });
     expect(narrow).not.toBe(wide);
   });
 
@@ -215,7 +215,7 @@ describe("Viewport stabilization", () => {
       }, STABILIZATION_MS);
     }
 
-    const boundsA = { west: -137.24, south: 43.87, east: -108.12, north: 47.11 };
+    const boundsA = { west: -137.3, south: 43.8, east: -108.1, north: 47.2 };
     const boundsB = { west: -125.19, south: 45.23, east: -120.17, north: 45.8 };
 
     // Oscillate A→B→A within stabilization window
@@ -303,7 +303,7 @@ describe("Viewport stabilization", () => {
       }, STABILIZATION_MS);
     }
 
-    const bounds = { west: -137.24, south: 43.87, east: -108.12, north: 47.11 };
+    const bounds = { west: -137.3, south: 43.8, east: -108.1, north: 47.2 };
 
     maybeFetch(bounds);
     vi.advanceTimersByTime(STABILIZATION_MS + 50);
@@ -328,9 +328,9 @@ describe("/api/wind server cache", () => {
     const raw = { west: -137.23385, south: 43.87901, east: -108.12294, north: 47.10516 };
     const normalized = normalizeBoundsForCache(raw);
 
-    expect(normalized.west).toBe(-137.24);
-    expect(normalized.south).toBe(43.87);
-    expect(normalized.east).toBe(-108.12);
-    expect(normalized.north).toBe(47.11);
+    expect(normalized.west).toBe(-137.3);
+    expect(normalized.south).toBe(43.8);
+    expect(normalized.east).toBe(-108.1);
+    expect(normalized.north).toBe(47.2);
   });
 });

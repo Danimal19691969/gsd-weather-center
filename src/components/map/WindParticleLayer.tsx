@@ -66,6 +66,8 @@ export function WindParticleLayer({ enabled }: Props) {
       const field = await fetchWind(bounds);
       if (field) {
         hasFetched.current = true;
+        console.log("[wind] WIND FIELD SWAPPED bounds=", field.bounds);
+        console.log("[wind] WIND VIEWPORT CHANGE ACCEPTED");
         systemRef.current?.setField(field);
       }
     }, delay);
@@ -84,8 +86,16 @@ export function WindParticleLayer({ enabled }: Props) {
     canvas.style.top = "0";
     canvas.style.left = "0";
     canvas.style.pointerEvents = "none";
-    canvas.width = mapCanvas.width;
-    canvas.height = mapCanvas.height;
+    canvas.style.zIndex = "1";
+
+    // Use CSS pixel dimensions for canvas bitmap so that canvas coordinates
+    // match map.project()/unproject() which return CSS pixels.
+    const cssWidth = mapCanvas.clientWidth;
+    const cssHeight = mapCanvas.clientHeight;
+    canvas.style.width = cssWidth + "px";
+    canvas.style.height = cssHeight + "px";
+    canvas.width = cssWidth;
+    canvas.height = cssHeight;
     container.appendChild(canvas);
     canvasRef.current = canvas;
 
@@ -93,8 +103,12 @@ export function WindParticleLayer({ enabled }: Props) {
     systemRef.current = system;
 
     const resizeObserver = new ResizeObserver(() => {
-      canvas.width = mapCanvas.width;
-      canvas.height = mapCanvas.height;
+      const w = mapCanvas.clientWidth;
+      const h = mapCanvas.clientHeight;
+      canvas.style.width = w + "px";
+      canvas.style.height = h + "px";
+      canvas.width = w;
+      canvas.height = h;
       system.resize(canvas.width, canvas.height);
     });
     resizeObserver.observe(mapCanvas);
